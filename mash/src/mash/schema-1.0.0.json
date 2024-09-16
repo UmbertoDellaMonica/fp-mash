@@ -69,11 +69,14 @@
 				"type" : "object",
 				"required" :
 				[
+					"ID",
 					"name",
 					"hashes"
 				],
 				"properties" :
 				{
+
+					"ID" : {"type" : "string"},
 					// a sequence identifier, expected to be unique in the
 					// collection
 					//

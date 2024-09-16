@@ -261,33 +261,63 @@ def read_gz(fasta_lines, rev_com='false'):
 
 # Read file FASTA
 def read_fasta(fasta_lines, rev_com='false'):
+
+    print("------------------------------------------------------------------------")
+    print("-----------------------Lettura del file FASTA--------------------------")
+
     lines = []
     read = ''
     read_rc = ''
     step = ''
+
+    i = 0 
     for s in fasta_lines:
+        #print(f"{i} : Computazione ------------------------------- ")
+
+        #print(f"{s}")
+        #print(f"READ : {read}")
+        # ID del gene e del transcript 
         if s[0] == '>':
+            #print("Sono qui ho letto il mio ID")
+
+            #print(f"Questo è il mio ID : ' {s[0]} ' ")
+
             if read != '':
                 lines.append(read)
+                #print(f"Lines : {lines}")
                 read = ''
+
                 if rev_com == 'false':
                     lines.append(read_rc)
                     read_rc = ''
 
             s = s.replace('\n', '')
+
             s_list = s.split()
+            
             if rev_com == 'false':
                 read = s_list[1] + ' '
+
             else:
                 read = s_list[1] + '_0 '
                 read_rc = s_list[1] + '_1 '
+                #print(f"{read} e {read_rc} ")
+
         else:
+
             s = s.replace('\n', '')
             if rev_com == 'false':
                 read += s
+
             else:
                 read += s
                 read_rc += reverse_complement(s.replace('\n', ''))
+                #print(f"\n READ : {read}")
+
+        #print(f"{i} : Fine Computazione ------------------------------- ")
+        i = i+1
+        #print(f"Lines : [{lines}]")
+
     return lines
 
 
@@ -308,15 +338,24 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
     file = None
     lines = []
 
+    print(f"Name File : {name_file} \n ")
+
+
     # Scrittura su file
     if name_file.endswith('.gz'):
         # GZ FILE
         file = gzip.open(name_file, 'rb')
         lines = read_gz(file.readlines(),rev_com)
+
+
     elif name_file.endswith('.fa') or name_file.endswith('.fasta') or name_file.endswith('.fastq'):
+        #print("Sto leggendo un file .fa ")
         # FASTA FILE
         file = open(name_file)
-        lines = read_fasta(file.readlines(),rev_com)
+        lines = read_fasta(file.readlines(), rev_com)
+        
+    
+    #print(f"Size Lines : {len(lines)}")
 
     read_lines = []
 
@@ -327,6 +366,7 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
 
         new_line = ''
         new_fact_line = ''
+        #print(f"s string : {s} \n ")
 
         str_line = s.split()
         id_gene = str_line[0]
