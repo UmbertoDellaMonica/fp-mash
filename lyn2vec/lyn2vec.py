@@ -9,7 +9,7 @@ from factorizations_comb import d_cfl, d_icfl, d_cfl_icfl
 
 from dna_utils import generate_dna_sequences,generate_transcript_short_id,generate_genes_short_id
 
-
+########################################################################################################################
 # Create fingerprint files (args.step = 'basic') #################################################################
 def basic_fingerprint(args):
 
@@ -90,7 +90,12 @@ def basic_fingerprint(args):
             fact_fingerprint_file.close()
 
         print('\nCompute fingerprint by list (%s, %s) - stop!' % (args.type_factorization, args.fact))
+########################################################################################################################
 
+
+
+
+########################################################################################################################
 # Create fingerprint files (args.step = 'generalized') #######################################################################
 def generalized_fingerprint(args):
 
@@ -169,6 +174,9 @@ def generalized_fingerprint(args):
             fact_fingerprint_file.close()
 
         print('\nCompute fingerprint by list (%s, %s) - stop!' % (args.type_factorization, args.fact))
+########################################################################################################################
+
+
 
 ########################################################################################################################
 # Create fingerprint files (args.step = 'mapping') #######################################################################
