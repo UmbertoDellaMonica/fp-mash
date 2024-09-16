@@ -26,12 +26,12 @@ int main(int argc, const char ** argv)
     commandList.addCommand(new mash::CommandScreen());
     commandList.addCommand(new mash::CommandTaxScreen());
     commandList.addCommand(new mash::CommandTriangle());
-#ifdef COMMAND_WITHIN
+//#ifdef COMMAND_WITHIN
     commandList.addCommand(new mash::CommandContain());
-#endif
-#ifdef COMMAND_FIND
+//#endif
+//#ifdef COMMAND_FIND
 	commandList.addCommand(new mash::CommandFind());
-#endif
+//#endif
     commandList.addCommand(new mash::CommandInfo());
     commandList.addCommand(new mash::CommandPaste());
     commandList.addCommand(new mash::CommandBounds());

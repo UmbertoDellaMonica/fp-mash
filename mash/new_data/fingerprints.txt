@@ -1,0 +1,4 @@
+>fingerprint1 taxid 1
+4,4,4,4,4,4,4,4,4
+>fingerprint2 taxid 2
+5,5,5,5,5,5,5,5

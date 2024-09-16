@@ -58,13 +58,26 @@ int CommandTriangle::run() const
     }
 
     Sketch::Parameters parameters;
-
-    if (sketchParameterSetup(parameters, *(Command *)this))
+    
+    if ( sketchParameterSetup(parameters, *(Command *)this) )
     {
-        return 1;
+    	return 1;
+    }
+    
+    if ( arguments.size() == 1 && !list )
+    {
+    	parameters.concatenated = false;
     }
 
     Sketch sketch;
+    
+    // Vecchie variabili reintegrate
+    uint64_t lengthMax;
+    double randomChance;
+    int kMin;
+    string lengthMaxName;
+    int warningCount = 0;
+    
     vector<string> queryFiles;
 
     for (int i = 0; i < arguments.size(); i++)
@@ -109,6 +122,26 @@ int CommandTriangle::run() const
     } else {
         sketch.initFromFiles(queryFiles, parameters); // Caricamento sequenze genomiche
     }
+
+    double lengthThreshold = (parameters.warning * sketch.getKmerSpace()) / (1. - parameters.warning);
+
+    for (uint64_t i = 0; i < sketch.getReferenceCount(); i++)
+    {
+        uint64_t length = sketch.getReference(i).length;
+
+        if (length > lengthThreshold)
+        {
+            if (warningCount == 0 || length > lengthMax)
+            {
+                lengthMax = length;
+                lengthMaxName = sketch.getReference(i).name;
+                randomChance = sketch.getRandomKmerChance(i);
+                kMin = sketch.getMinKmerSize(i);
+            }
+
+            warningCount++;
+        }
+    }
     if (!edge)
     {
         cout << '\t' << sketch.getReferenceCount() << endl;
@@ -134,6 +167,11 @@ int CommandTriangle::run() const
     if (!edge)
     {
         cerr << "Max p-value: " << pValuePeakToSet << endl;
+    }
+
+    if (warningCount > 0 && !parameters.reads)
+    {
+        warnKmerSize(parameters, *this, lengthMax, lengthMaxName, randomChance, kMin, warningCount);
     }
 
     return 0;
@@ -262,7 +300,5 @@ void compareFingerprints(CommandDistance::CompareOutput::PairOutput * pair, cons
     pair->numer = matches;
     pair->denom = minSize;
 }
-
-
 
 } // namespace mash
