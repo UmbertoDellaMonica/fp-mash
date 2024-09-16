@@ -1,0 +1,15 @@
+/src/mash/*.o
+/src/mash/capnp/MinHash.capnp.*
+/Makefile
+/autom4te.cache/
+/config.log
+/config.status
+/configure
+/libmash.a
+/mash
+.vscode/settings.json
+configure~
+test/genomes.json
+test/genomes.msh
+test/reads.json
+test/reads.msh
