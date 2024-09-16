@@ -255,8 +255,6 @@ def read_gz(fasta_lines, rev_com='false'):
 # Read file FASTA
 def read_fasta(fasta_lines, rev_com='false'):
 
-    print("------------------------------------------------------------------------")
-    print("-----------------------Lettura del file FASTA--------------------------")
 
     lines = []
     read = ''
@@ -265,21 +263,14 @@ def read_fasta(fasta_lines, rev_com='false'):
 
     i = 1
     for s in fasta_lines:
-        #print(f"{i} : Computazione ------------------------------- ")
 
-        #print(f"{s}")
-        #print(f"READ : {read}")
         # ID del gene e del transcript 
         if s[0] == '>':
             print(s.strip() + ": ID Letto " + str(i))
             i=i+1
-            #print("Sono qui ho letto il mio ID")
-
-            #print(f"Questo è il mio ID : ' {s[0]} ' ")
 
             if read != '':
                 lines.append(read)
-                #print(f"Lines : {lines}")
                 read = ''
 
                 if rev_com == 'false':
@@ -296,7 +287,6 @@ def read_fasta(fasta_lines, rev_com='false'):
             else:
                 read = s_list[1] + '_0 '
                 read_rc = s_list[1] + '_1 '
-                #print(f"{read} e {read_rc} ")
 
         else:
 
@@ -307,21 +297,14 @@ def read_fasta(fasta_lines, rev_com='false'):
             else:
                 read += s
                 read_rc += reverse_complement(s.replace('\n', ''))
-                #print(f"\n READ : {read}")
 
     if read != '':
         lines.append(read)
-        #print(f"Lines : {lines}")
         read = ''
 
         if rev_com == 'false':
             lines.append(read_rc)
             read_rc = ''
-        #print(f"{i} : Fine Computazione ------------------------------- ")
-        #print(f"Lines : [{lines}]")
-
-    
-
     return lines
 
 
@@ -358,13 +341,7 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
         file = open(name_file)
         lines = read_fasta(file.readlines(), rev_com)
     
-    print(str(len(lines)) + "lines lette")
-
-    #print_lines(lines)
-        
-    
-    #print(f"Size Lines : {len(lines)}")
-
+    print(str(len(lines))+" Lines Lette")
     read_lines = []
 
     cont_genes = 0
@@ -374,7 +351,6 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
 
         new_line = ''
         new_fact_line = ''
-        #print(f"s string : {s} \n ")
 
         str_line = s.split()
         id_gene = str_line[0]
