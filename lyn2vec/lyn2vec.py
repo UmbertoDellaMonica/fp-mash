@@ -1,6 +1,6 @@
 import argparse
 
-from fingerprint_utils import extract_reads,extract_long_reads,compute_fingerprint_by_list,compute_long_fingerprint_by_list,mapping_projection
+from fingerprint_utils import *
 from multiprocessing.pool import Pool
 from functools import partial
 
@@ -18,6 +18,8 @@ def basic_fingerprint(args):
 
     # Extract of reads (Format = ID GENE read)
     read_lines = extract_reads(name_file=input_fasta, filter=args.filter, rev_com=args.rev_comb)
+
+    #print_lines(read_lines)
 
     if len(read_lines) == 0:
         print('No reads extracted!')

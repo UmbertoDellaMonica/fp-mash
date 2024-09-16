@@ -1,14 +1,7 @@
-import pickle
 import gzip
-import random
 import numpy as np
 
 from factorizations import CFL
-from factorizations import ICFL_recursive
-from factorizations import CFL_icfl
-from factorizations_comb import d_cfl
-from factorizations_comb import d_icfl
-from factorizations_comb import d_cfl_icfl
 from factorizations_comb import reverse_complement
 
 
@@ -353,6 +346,9 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
         # FASTA FILE
         file = open(name_file)
         lines = read_fasta(file.readlines(), rev_com)
+    
+
+    print_lines(lines)
         
     
     #print(f"Size Lines : {len(lines)}")
@@ -533,4 +529,15 @@ def compute_long_fingerprint_by_list(fact_file='no_create', factorization=CFL, T
 
     return fingerprint_lines, fingerprint_fact_lines
 
+def print_lines(arr):
+    """
+    Stampa tutti gli elementi di un array.
 
+    Args:
+        arr (list): L'array di elementi da stampare.
+    """
+    if not isinstance(arr, list):
+        raise TypeError("L'argomento deve essere una lista.")
+
+    for index, element in enumerate(arr):
+        print(f"\n [{index + 1}]: {element}\n")
