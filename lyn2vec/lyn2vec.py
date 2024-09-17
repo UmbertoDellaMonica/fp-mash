@@ -268,15 +268,19 @@ if __name__ == '__main__':
         print('\nFingerprint Step: 1f_np...\n')
         basic_fingerprint(args)
 
+
     elif args.type == 'generalized':
         print('\nFingerprint long reads...\n')
         generalized_fingerprint(args)
+
 
     elif args.type == 'mapping':
         print('\nMapping projecyion of fingerprint files...\n')
         fingerprint_mapping(args)
         
+
     elif args.type == 'generate':
+        print(f"PATH FILE : {args.path}")
         # Make a for with number_dna_generate 
         sequence = generate_dna_sequences(args.number_dna_generate,args.size, args.gc_content)
         print("\n Success generate sequences... \n")

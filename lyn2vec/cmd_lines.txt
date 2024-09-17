@@ -59,7 +59,7 @@
     d) GENERATE FILE .FASTA 
         - METHOD   : generate_fasta_file in SCRIPT lyn2vec.py
 
-        - CMD_LINE : python lyn2vec.py --type generate --path training/ --size 20 --gc_content 0.6 --format fasta --number_dna_generate 3
+        - CMD_LINE : python lyn2vec.py --type generate --path training/DNA --size 20 --gc_content 0.6 --format fasta --number_dna_generate 3
 
         - RETURN   : given the size of DNA in bp and GC content (between 0 and 1), generates a random DNA sequence and saves it in .fasta, .fa, or .fastq format.
 
