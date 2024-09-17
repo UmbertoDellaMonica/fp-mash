@@ -30,7 +30,7 @@ CommandSketch::CommandSketch()
     addOption("id", Option(Option::File, "I", "Sketch", "ID field for sketch of reads (instead of first sequence ID).", ""));
     addOption("comment", Option(Option::File, "C", "Sketch", "Comment for a sketch of reads (instead of first sequence comment).", ""));
     addOption("counts", Option(Option::Boolean, "M", "Sketch", "Store multiplicity of each k-mer in each sketch.", ""));
-    addOption("fingerprint", Option(Option::Boolean, "fp", "Input", "Indicates that the input files are fingerprints instead of sequences.", "")); // Aggiunto
+    addOption("fingerprint", Option(Option::Boolean, "fp", "Input", "Indicates that the input files are fingerprints instead of sequences.", "")); // Opzione Fingerprint!
     useSketchOptions();
 }
 
