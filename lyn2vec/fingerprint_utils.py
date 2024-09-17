@@ -336,7 +336,7 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
 
 
     elif name_file.endswith('.fa') or name_file.endswith('.fasta') or name_file.endswith('.fastq'):
-        #print("Sto leggendo un file .fa ")
+        print("Sto leggendo un file .fa ")
         # FASTA FILE
         file = open(name_file)
         lines = read_fasta(file.readlines(), rev_com)
