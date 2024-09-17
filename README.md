@@ -60,6 +60,49 @@ Use this command to generate the **fingerprint factorization**
 - **--fasta**: Indicate the file (.fasta, .fa, .fastq, .gz ) that we have generated before
 - **--type_factorization** : that parameter indicates the type of factorization that we want to use to generate the fingerPrint. We have this type of factorization **[CFL, ICFL , ICFL_COMB, CFL_ICFL,CFL_ICFL_COMB]**
 
+### 3 - Generate sketch files ( .msh )
+
+Use this command to generate the sketch files
+
+```bash
+   mash sketch -fp ../training/Umberto/CFL/DNA3-CFL.txt  -o ../training/Umberto/CFL/DNA3-sketch.msh
+```
+
+##### Mash'parameters - Command Sketch
+
+- **skech** : it is a command of mash to generate a sketch file with format .msh
+- **-fp** : this parameter means the type of operation that we want apply (fingerprint way)
+- **-o** : this parameter means the name and path where the file is saved  
+
+### 4 - Generate Info sketch files (.json)
+
+If we want see files in format .msh , we need to run this command :
+
+```bash
+   mash info -d ../training/Umberto/CFL/DNA3-CFL.txt  > ../training/Umberto/CFL/DNA3-sketch.json
+```
+
+##### Mash'parameters - Command Info
+
+- **info** : It is a command of mash that is used to view  all info of a sketch file  
+- **-d** : this parameter means "dump". We want store or view the information in a clear view like file .json
+- **>** : this is a command of shell Unix like, because we want redirect the standard output in out file .json  
+
+### 5 - Distance between 2 FingerPrint sketch files
+
+Sometimes we need to view the distance between a dna sequence and the command **distance** is for us
+
+In this case, there is an example of usage the method of dist between two sketch files
+
+```bash
+   mash dist -fp  ../training/Umberto/CFL/DNA3-sketch.msh ../training/Umberto/CFL/DNA2-sketch.msh 
+```
+
+##### Mash'parameters - Command Info
+
+- **dist** : It is a command of mash that is used to see the distance between two sketch files.
+The **distance** is a value between 0-1. if the value is near to 0 in this case we have a similarity between two sketch files instead we have two different files if we have a value near to 1
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
