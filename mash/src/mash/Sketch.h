@@ -136,7 +136,10 @@ public:
     };
     
 
-
+    struct SubSketch {
+        std::string id;  // Identificativo con numero incrementale
+        std::vector<hash_u> hashes;  // Vettore di hash
+    };
     /**
      * La struttura Reference è una parte essenziale della classe Sketch e rappresenta un singolo riferimento (o una singola sequenza) all'interno dello sketch. 
      * Questa struttura contiene vari parametri che descrivono dettagliatamente ogni riferimento:

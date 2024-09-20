@@ -58,6 +58,7 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
     parameters = parametersNew;
     
     int counterLine = 0;
+    unordered_map<string, int> idCounter;
     robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
                                                      // Vettore per memorizzare le reference finali
     string lastID = ""; // Memorizza l'ultimo ID letto
@@ -93,6 +94,16 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
             ss >> id;
 
             //cout << "Processing ID: " << id << endl;
+            if (idCounter.find(id) == idCounter.end()) {
+                    idCounter[id] = 1;  // Imposta contatore a 1 per il nuovo ID
+                }
+
+                // Crea un nuovo sub-sketch per l'ID con numero incrementale
+            SubSketch subSketch;
+            subSketch.id = to_string(idCounter[id]) + "_" + id;  // Usa il contatore corrente
+            idCounter[id]++;  // Incrementa il contatore per l'ID
+            cout << subSketch.id << endl;
+
 
             while (ss >> number)
             {
@@ -100,7 +111,11 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
                 if (ss.peek() == ' ') ss.ignore();
             }
 
-            // Verifica se l'ID è diverso dall'ultimo ID
+        ///**PARTE ORIGIANEL CHE NON SO SE SERVE ANCORA QUINDI METTO IN COMMENTO ***////
+            /*
+            
+            
+            Verifica se l'ID è diverso dall'ultimo ID
             if (id != lastID)
             {
                 // Nuovo ID, crea una nuova reference
@@ -128,21 +143,31 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
                 //cout << "Created new reference for ID: " << id << endl;
             }
 
-            // Calcola Hash in base64 
+             
             hash_u hash = getHashFingerPrint(fingerprint, fingerprint.size() * sizeof(uint64_t), parameters.seed, parameters.use64);
-            currentReference->hashesSorted.add(hash); // Usa il metodo add
-            currentReference->length = currentReference->length+fingerprint.size();
-
-            //cout << "Added hash for ID: " << id << endl;
+            currentReference->hashesSorted.add(hash); 
+            currentReference->length = currentReference->length+fingerprint.size(); 
+            
         }
-
         if (currentReference != nullptr)
         {
-            //cout << "Adding last reference for file: " << file << endl;
-            // Aggiungi l'ultima reference processata al vettore
-            references.push_back(*currentReference);
-            delete currentReference;
+          references.push_back(*currentReference);
+            delete currentReference; 
         }
+        */
+
+
+         //++++APPLICAZIONE DEL SUBSKETCH++++///
+            for (uint64_t num : fingerprint)
+                {
+                    vector<uint64_t> numVector;
+                    numVector.push_back(num); // Usa push_back per aggiungere num
+                    hash_u hash = getHashFingerPrint(numVector, sizeof(uint64_t), parameters.seed, parameters.use64);
+                    subSketch.hashes.push_back(hash);  // Aggiungi l'hash al subsketch
+                }
+
+                // Aggiungi il subsketch alla lista
+                subsketch_list.push_back(subSketch);
     }
 
     //cout << "Creating index..." << endl;
