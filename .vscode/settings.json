@@ -1,6 +1,18 @@
 {
     "files.associations": {
         ".fantomasignore": "ignore",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "deque": "cpp",
+        "format": "cpp",
+        "list": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "array": "cpp",
+        "ranges": "cpp",
+        "span": "cpp",
+        "xutility": "cpp",
+        "string": "cpp",
+        "iostream": "cpp",
+        "system_error": "cpp"
     }
 }

@@ -1,0 +1,70 @@
+posizione ID :0 ID : 
+posizione ID :1 ID : 
+posizione ID :2 ID : 
+posizione ID :3 ID : 
+posizione ID :4 ID : 
+Size  Position Hash By Reference :5
+ Sono qui ! 
+ Sono qui ! 
+ Sono qui ! 
+ Sono qui ! 
+ Sono qui ! 
+      "Write JSON information : 
+{
+  "kmer" : 1,
+  "alphabet" : "0123456789",
+  "preserveCase" : false,
+  "canonical" : false,
+  "sketchSize" : 1000,
+  "hashType" : "MurmurHash3_x64_128",
+  "hashBits" : 32,
+  "hashSeed" : 42,
+  "sketches" :
+  [
+    {
+    "ID" : "",
+      "name" : "G00000EURBR8GN_0",
+      "length" : 10948,
+      "comment" : "FingerPrint : G00000EURBR8GN_0",
+      "hashes" :
+      [
+      ]
+    },
+    {
+    "ID" : "",
+      "name" : "G00000GRBH28U8_0",
+      "length" : 10641,
+      "comment" : "FingerPrint : G00000GRBH28U8_0",
+      "hashes" :
+      [
+      ]
+    },
+    {
+    "ID" : "",
+      "name" : "G00000FUTOPX8F_0",
+      "length" : 10498,
+      "comment" : "FingerPrint : G00000FUTOPX8F_0",
+      "hashes" :
+      [
+      ]
+    },
+    {
+    "ID" : "",
+      "name" : "G00000URDOICNQ_0",
+      "length" : 10690,
+      "comment" : "FingerPrint : G00000URDOICNQ_0",
+      "hashes" :
+      [
+      ]
+    },
+    {
+    "ID" : "",
+      "name" : "G00000YNXQBC1Y_0",
+      "length" : 10610,
+      "comment" : "FingerPrint : G00000YNXQBC1Y_0",
+      "hashes" :
+      [
+      ]
+    }
+  ]
+}

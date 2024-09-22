@@ -239,7 +239,7 @@ int CommandPaste::run() const
     }
     
     cerr << "Writing " << out << "..." << endl; // Messaggio di log
-    sketch.writeToCapnp(out.c_str()); // Scrivi l'oggetto Sketch nel file di output
+    sketch.writeToCapnpFingerPrint(out.c_str()); // Scrivi l'oggetto Sketch nel file di output
     
     return 0; // Termina con successo
 }

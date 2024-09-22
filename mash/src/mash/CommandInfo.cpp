@@ -191,14 +191,14 @@ int CommandInfo::run() const
             {
                 cout << ref.hashesSorted.size() << '\t'
                      << ref.length << '\t'
-                     << ref.name << '\t'
+                     << ref.id<< '\t'
                      << ref.comment << endl;
             }
             else
             {
                 columns[0].push_back(std::to_string(ref.hashesSorted.size()));
                 columns[1].push_back(std::to_string(ref.length));
-                columns[2].push_back(ref.name);
+                columns[2].push_back(ref.id);
                 columns[3].push_back(ref.comment);
             }
         }
@@ -288,6 +288,7 @@ int CommandInfo::writeJson(const Sketch &sketch) const
         
         
         cout << "    {" << endl;
+        cout << "    \"ID\" : \""<< ref.id << "\"," << endl;
         cout << "      \"name\" : \"" << ref.name << "\"," << endl;
         cout << "      \"length\" : " << ref.length << ',' << endl;
         cout << "      \"comment\" : \"" << ref.comment << "\"," << endl;

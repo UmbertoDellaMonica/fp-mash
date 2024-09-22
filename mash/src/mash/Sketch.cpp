@@ -952,7 +952,6 @@ int Sketch::writeToCapnpFingerPrint(const char * file) const
         //cout << "Processing reference " << i << ": " << references[i].name << endl;
         capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
 
-        referenceBuilder.setId(references[i].name);
         referenceBuilder.setName(references[i].name);
         referenceBuilder.setComment(references[i].comment);
         referenceBuilder.setLength64(references[i].length);
@@ -976,7 +975,7 @@ int Sketch::writeToCapnpFingerPrint(const char * file) const
                 if (hashes.size() > 0)
                 {
                     //cout << "Initializing 64-bit hashes builder for SubSketch" << endl;
-                    capnp::List<double>::Builder hashes64Builder = subSketchBuilder.initHashes64(hashes.size());
+                    capnp::List<uint64_t>::Builder hashes64Builder = subSketchBuilder.initHashes64(hashes.size());
                     //cout << "Ho superato questa barriera!" << endl;
                     for (uint64_t k = 0; k != hashes.size(); k++)
                     {
