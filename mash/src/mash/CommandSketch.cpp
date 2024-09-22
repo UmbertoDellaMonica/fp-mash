@@ -119,11 +119,11 @@ int CommandSketch::run() const
 
 
 
-        //if(!fingerprint){
-        //sketch.writeToCapnp(prefix.c_str());
-        //}else{
+        if(!fingerprint){
+        sketch.writeToCapnp(prefix.c_str());
+        }else{
         sketch.writeToCapnpFingerPrint(prefix.c_str());
-        //}
+        }
 
     return 0;
 }

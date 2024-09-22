@@ -789,7 +789,7 @@ void Sketch::useThreadOutput(SketchOutput * output)
 	delete output;
 }
 
-/*bool Sketch::writeToFile() const
+bool Sketch::writeToFile() const
 {
     return writeToCapnp(file.c_str()) == 0;
 }
@@ -798,7 +798,7 @@ void Sketch::useThreadOutput(SketchOutput * output)
 
 
 
-/*int Sketch::writeToCapnp(const char * file) const
+int Sketch::writeToCapnp(const char * file) const
 {
     cout << "Opening file: " << file << endl;
     int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC , 0644);
@@ -920,7 +920,7 @@ void Sketch::useThreadOutput(SketchOutput * output)
     cout << "Finished writing to file" << endl;
     
     return 0;
-}*/
+}
 
 
 int Sketch::writeToCapnpFingerPrint(const char * file) const

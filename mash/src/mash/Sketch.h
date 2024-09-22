@@ -222,31 +222,46 @@ public:
 	int getMinKmerSize(uint64_t reference) const;
 	bool getPreserveCase() const {return parameters.preserveCase;}
 	double getRandomKmerChance(uint64_t reference) const;
+    
+    
+    
     const Reference & getReference(uint64_t index) const {return references.at(index);}
-    /**
-     * Ritorna il numero di reference che sono state trovate nel momento in cui lo sketch è stato inizializzato e letto
-     */
+   
     uint64_t getReferenceCount() const {return references.size();}
 
     void getReferenceHistogram(uint64_t index, std::map<uint32_t, uint64_t> & histogram) const;
+    
+    std::vector<SubSketch> & getReferenceSubSketchList(uint64_t index)  { return references.at(index).subSketch_list; }
+    
     uint64_t getReferenceIndex(std::string id) const;
+    
     int getKmerSize() const {return parameters.kmerSize;}
+    
     double getKmerSpace() const {return kmerSpace;}
+    
     bool getUse64() const {return parameters.use64;}
+    
     uint64_t getWindowSize() const {return parameters.windowSize;}
+    
     bool getNoncanonical() const {return parameters.noncanonical;}
+    
     bool hasHashCounts() const {return references.size() > 0 && references.at(0).counts.size() > 0;}
+    
     bool hasLociByHash(hash_t hash) const {return lociByHash.count(hash);}
+    
+    
     int initFromFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
     void initFromReads(const std::vector<std::string> & files, const Parameters & parametersNew);
     uint64_t initParametersFromCapnp(const char * file);
+    
     void setReferenceName(int i, const std::string name) {references[i].name = name;}
     void setReferenceComment(int i, const std::string comment) {references[i].comment = comment;}
 	bool sketchFileBySequence(FILE * file, ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> * threadPool);
 	void useThreadOutput(SketchOutput * output);
     void warnKmerSize(uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount) const;
-    //bool writeToFile() const;
-    //int writeToCapnp(const char * file) const;
+    
+    bool writeToFile() const;
+    int writeToCapnp(const char * file) const;
 
     int writeToCapnpFingerPrint(const char * file) const;
 

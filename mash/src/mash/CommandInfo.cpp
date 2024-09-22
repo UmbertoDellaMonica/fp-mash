@@ -281,35 +281,54 @@ int CommandInfo::writeJson(const Sketch &sketch) const
     cout << "  \"sketches\" :" << endl;
     cout << "  [" << endl;
     
-    for (uint64_t i = 0; i < sketch.getReferenceCount(); i++)
-    {
+    for (uint64_t i = 0; i < sketch.getReferenceCount(); i++){
+    
         const Sketch::Reference &ref = sketch.getReference(i);
-
-        
         
         cout << "    {" << endl;
-        cout << "    \"ID\" : \""<< ref.id << "\"," << endl;
+        cout << "    \"ID\" : \"" << ref.name << "\"," << endl;
         cout << "      \"name\" : \"" << ref.name << "\"," << endl;
         cout << "      \"length\" : " << ref.length << ',' << endl;
         cout << "      \"comment\" : \"" << ref.comment << "\"," << endl;
-        cout << "      \"hashes\" :" << endl;
+        cout << "      \"SubSketch\" :" << endl;
         
         cout << "      [" << endl;
+
+
+        cout << "SIZE SUBSKETCH_LIST : "<< ref.subSketch_list.size();
         
-        for (int j = 0; j < ref.hashesSorted.size(); j++)
+        // Itero su ogni SubSketch 
+        for (int j = 0; j < ref.subSketch_list.size(); j++)
         {
-            cout << "        " << (use64 ? ref.hashesSorted.at(j).hash64 : ref.hashesSorted.at(j).hash32);
             
-            if (j < ref.hashesSorted.size() - 1)
+            const Sketch::SubSketch &subSketch = ref.subSketch_list[j];
+            
+            cout << "        {" << endl;
+            cout << "          \"ID\" : \"" << subSketch.ID << "\"," << endl;
+            cout << "          \"hashesSorted\" : [" << endl;
+            
+            for (size_t k = 0; k < subSketch.hashesSorted.size(); k++)
             {
-                cout << ',';
+                cout << "            " << subSketch.hashesSorted.at(k).hash64;
+                if (k < subSketch.hashesSorted.size() - 1)
+                {
+                    cout << ",";
+                }
+                cout << endl;
             }
             
+            cout << "          ]" << endl;
+            cout << "        }";
+            if (j < ref.subSketch_list.size() - 1)
+            {
+                cout << ",";
+            }
             cout << endl;
         }
         
         cout << "      ]" << endl;
         
+
         if (ref.countsSorted)
         {
             cout << "      \"counts\" :" << endl;
@@ -339,11 +358,10 @@ int CommandInfo::writeJson(const Sketch &sketch) const
             cout << "    }" << endl;
         }
     }
-    
     cout << "  ]" << endl;
     cout << "}" << endl;
-    
-    return 0;
-}
 
-} // namespace mash
+    return 0;
+    }
+    
+}
