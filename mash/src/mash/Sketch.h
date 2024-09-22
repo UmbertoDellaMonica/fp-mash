@@ -162,6 +162,8 @@ public:
         std::vector<uint32_t> counts;
         
         bool countsSorted;
+
+
     };
     
     struct SketchInput
@@ -227,6 +229,9 @@ public:
     
     const Reference & getReference(uint64_t index) const {return references.at(index);}
    
+    std::string & getSketchId(uint64_t index)  {return references.at(index).id;}
+
+
     uint64_t getReferenceCount() const {return references.size();}
 
     void getReferenceHistogram(uint64_t index, std::map<uint32_t, uint64_t> & histogram) const;
@@ -251,8 +256,12 @@ public:
     
     
     int initFromFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
+    int initFromFingerPrintFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
+
     void initFromReads(const std::vector<std::string> & files, const Parameters & parametersNew);
     uint64_t initParametersFromCapnp(const char * file);
+    uint64_t initParametersFingerPrintsFromCapnp(const char * file);
+
     
     void setReferenceName(int i, const std::string name) {references[i].name = name;}
     void setReferenceComment(int i, const std::string comment) {references[i].comment = comment;}
@@ -301,6 +310,8 @@ void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const 
 void getMinHashPositions(std::vector<Sketch::PositionHash> & loci, char * seq, uint32_t length, const Sketch::Parameters & parameters, int verbosity = 0);
 bool hasSuffix(std::string const & whole, std::string const & suffix);
 Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input);
+Sketch::SketchOutput * loadCapnpFingerPrint(Sketch::SketchInput * input);
+
 void reverseComplement(const char * src, char * dest, int length);
 void setAlphabetFromString(Sketch::Parameters & parameters, const char * characters);
 void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap & hashes);

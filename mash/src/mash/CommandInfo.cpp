@@ -49,6 +49,9 @@ CommandInfo::CommandInfo()
         "Show hash count histograms for each sketch. Incompatible with -d, -H and -t.", ""));
     addOption("dump", Option(Option::Boolean, "d", "", 
         "Dump sketches in JSON format. Incompatible with -H, -t, and -c.", ""));
+    
+    addOption("fingerprint-dump",Option(Option::Boolean,"fpd","",
+    "Dump fingerprint sketches in JSON format. Incompatibile with -H , -t , -c.", ""));
 }
 
 /**
@@ -71,6 +74,13 @@ int CommandInfo::run() const
     bool tabular = options.at("tabular").active;
     bool counts = options.at("counts").active;
     bool dump = options.at("dump").active;
+    bool fingerprint = options.at("fingerprint-dump").active;
+
+    cout<< " ACTIVE OPTION HEADER ? : "<< header <<endl;
+    cout<< " ACTIVE OPTION TABULAR ? : "<< tabular <<endl;
+    cout<< " ACTIVE OPTION COUNTS ? : "<< counts <<endl;
+    cout<< " ACTIVE OPTION DUMP ? : "<< dump <<endl;
+    cout<< " ACTIVE OPTION FINGERPRINT ? : "<< fingerprint <<endl;
     
     // Verifica delle opzioni incompatibili
     if (header && tabular)
@@ -131,13 +141,22 @@ int CommandInfo::run() const
         // Inizializza solo i parametri dello sketch dal file Cap'n Proto
         referenceCount = sketch.initParametersFromCapnp(arguments[0].c_str());
     }
-    else
+    else if(fingerprint)
     {
+        cout << "Va qui !"<< endl;
+        // Inizializza lo sketch dai file specificati
+        sketch.initFromFingerPrintFiles(arguments, params);
+        referenceCount = sketch.getReferenceCount();
+
+    }else{
+
         // Inizializza lo sketch dai file specificati
         sketch.initFromFiles(arguments, params);
         referenceCount = sketch.getReferenceCount();
     }
     
+
+    cout<< "Sono qua ! dopo l'initFromFingerPrintsFiles() !"<<endl;
     // Gestione delle opzioni specifiche
     if (counts)
     {
@@ -145,6 +164,7 @@ int CommandInfo::run() const
     }
     else if (dump)
     {
+        cout<<"Poi qui !"<<endl;
         cout << "      \"Write JSON information : " << endl;
         return writeJson(sketch);
     }
@@ -286,7 +306,7 @@ int CommandInfo::writeJson(const Sketch &sketch) const
         const Sketch::Reference &ref = sketch.getReference(i);
         
         cout << "    {" << endl;
-        cout << "    \"ID\" : \"" << ref.name << "\"," << endl;
+        cout << "    \"ID\" : \"" << ref.id << "\"," << endl;
         cout << "      \"name\" : \"" << ref.name << "\"," << endl;
         cout << "      \"length\" : " << ref.length << ',' << endl;
         cout << "      \"comment\" : \"" << ref.comment << "\"," << endl;

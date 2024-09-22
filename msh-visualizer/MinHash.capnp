@@ -1,6 +1,3 @@
-using Cxx = import "/capnp/c++.capnp";
-$Cxx.namespace("capnp");
-
 @0xc4c8b1ada05e7704;
 
 struct MinHash

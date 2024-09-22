@@ -251,7 +251,6 @@ void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters
             {
                 hash_u hash = getHashNumber(&num, sizeof(uint64_t), parameters.seed, parameters.use64);
                 currentSubSketch->hashesSorted.add(hash); // Usa il metodo add
-                cout << "Added hash for number: " << num << " in SubSketch ID: " << currentSubSketch->ID << " HASH : " << to_string(hash.hash64) << endl;
             }
 
             currentReference->subSketch_list.push_back(*currentSubSketch);
@@ -275,7 +274,6 @@ void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters
             // Aggiungi l'ultima reference processata al vettore
             references.push_back(*currentReference);
             delete currentReference;
-            cout << "Added last reference for file: " << file << endl;
         }
     }
 
@@ -659,6 +657,159 @@ int Sketch::initFromFiles(const vector<string> & files, const Parameters & param
 
 
 
+int Sketch::initFromFingerPrintFiles(const vector<string> & files, const Parameters & parametersNew, int verbosity, bool enforceParameters, bool contain)
+{
+    parameters = parametersNew;
+    
+	ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> threadPool(0, parameters.parallelism);
+	
+    for ( int i = 0; i < files.size(); i++ )
+    {
+        bool isSketch = hasSuffix(files[i], parameters.windowed ? suffixSketchWindowed : suffixSketch);
+        
+        if ( isSketch )
+        {
+			// init header to check params
+			//
+			Sketch sketchTest;
+			sketchTest.initParametersFingerPrintsFromCapnp(files[i].c_str());
+			
+        	if ( i == 0 && ! enforceParameters )
+        	{
+        		initParametersFingerPrintsFromCapnp(files[i].c_str());
+        	}
+        	
+            string alphabet;
+            string alphabetTest;
+            
+            getAlphabetAsString(alphabet);
+            sketchTest.getAlphabetAsString(alphabetTest);
+            
+            if ( alphabet != alphabetTest )
+            {
+            	cerr << "\nWARNING: The sketch file " << files[i] << " has different alphabet (" << alphabetTest << ") than the current alphabet (" << alphabet << "). This file will be skipped." << endl << endl;
+            	continue;
+            }
+			
+            if ( sketchTest.getHashSeed() != parameters.seed )
+            {
+				cerr << "\nWARNING: The sketch " << files[i] << " has a seed size (" << sketchTest.getHashSeed() << ") that does not match the current seed (" << parameters.seed << "). This file will be skipped." << endl << endl;
+				continue;
+            }
+			if ( sketchTest.getKmerSize() != parameters.kmerSize )
+			{
+				cerr << "\nWARNING: The sketch " << files[i] << " has a kmer size (" << sketchTest.getKmerSize() << ") that does not match the current kmer size (" << parameters.kmerSize << "). This file will be skipped." << endl << endl;
+				continue;
+			}
+			
+            if ( ! contain && sketchTest.getMinHashesPerWindow() < parameters.minHashesPerWindow )
+            {
+                cerr << "\nWARNING: The sketch file " << files[i] << " has a target sketch size (" << sketchTest.getMinHashesPerWindow() << ") that is smaller than the current sketch size (" << parameters.minHashesPerWindow << "). This file will be skipped." << endl << endl;
+                continue;
+            }
+            
+			if ( sketchTest.getNoncanonical() != parameters.noncanonical )
+			{
+				cerr << "\nWARNING: The sketch file " << files[i] << " is " << (sketchTest.getNoncanonical() ? "noncanonical" : "canonical") << ", which is incompatible with the current setting. This file will be skipped." << endl << endl;
+				continue;
+			}
+            
+            if ( sketchTest.getMinHashesPerWindow() > parameters.minHashesPerWindow )
+            {
+                cerr << "\nWARNING: The sketch file " << files[i] << " has a target sketch size (" << sketchTest.getMinHashesPerWindow() << ") that is larger than the current sketch size (" << parameters.minHashesPerWindow << "). Its sketches will be reduced." << endl << endl;
+            }
+            
+            // init fully
+            //
+            vector<string> file;
+            file.push_back(files[i]);
+			threadPool.runWhenThreadAvailable(new SketchInput(file, 0, 0, "", "", parameters), loadCapnpFingerPrint);
+        }
+        else
+		{
+			FILE * inStream;
+		
+			if ( files[i] == "-" )
+			{
+				if ( verbosity > 0 )
+				{
+					cerr << "Sketching from stdin..." << endl;
+				}
+			
+				inStream = stdin;
+			}
+			else
+			{
+				if ( verbosity > 0 )
+				{
+					cerr << "Sketching " << files[i] << "..." << endl;
+				}
+			
+				inStream = fopen(files[i].c_str(), "r");
+			
+				if ( inStream == NULL )
+				{
+					cerr << "ERROR: could not open " << files[i] << " for reading." << endl;
+					exit(1);
+				}
+			}
+		
+			if ( parameters.concatenated )
+			{
+				if ( files[i] != "-" )
+				{
+					fclose(inStream);
+				}
+				
+				vector<string> file;
+				file.push_back(files[i]);
+				threadPool.runWhenThreadAvailable(new SketchInput(file, 0, 0, "", "", parameters), sketchFile);
+			}
+			else
+			{
+				if ( ! sketchFileBySequence(inStream, &threadPool) )
+				{
+					cerr << "\nERROR: reading " << files[i] << "." << endl;
+					exit(1);
+				}
+			
+				fclose(inStream);
+			}
+		}
+			
+		while ( threadPool.outputAvailable() )
+		{
+			useThreadOutput(threadPool.popOutputWhenAvailable());
+		}
+    }
+    
+	while ( threadPool.running() )
+	{
+		useThreadOutput(threadPool.popOutputWhenAvailable());
+	}
+	
+    /*
+    printf("\nCombined hash table:\n\n");
+    
+    for ( LociByHash_umap::iterator i = lociByHash.begin(); i != lociByHash.end(); i++ )
+    {
+        printf("Hash %u:\n", i->first);
+        
+        for ( int j = 0; j < i->second.size(); j++ )
+        {
+            printf("   Seq: %d\tPos: %d\n", i->second.at(j).sequence, i->second.at(j).position);
+        }
+    }
+    */
+    
+    createIndex();
+    
+    return 0;
+}
+
+
+
+
 uint64_t Sketch::initParametersFromCapnp(const char * file)
 {
     int fd = open(file, O_RDONLY);
@@ -704,7 +855,16 @@ uint64_t Sketch::initParametersFromCapnp(const char * file)
     parameters.noncanonical = reader.getNoncanonical();
    	parameters.preserveCase = reader.getPreserveCase();
 
-    capnp::MinHash::ReferenceList::Reader referenceListReader = reader.getReferenceList().getReferences().size() ? reader.getReferenceList() : reader.getReferenceListOld();
+    capnp::MinHash::ReferenceList::Reader referenceListReader;
+    if(reader.getReferenceList().getReferences().size() >0 ){
+        
+        
+        referenceListReader = reader.getReferenceList();
+    }else{
+
+     referenceListReader = reader.getReferenceListOld();
+    }
+
     capnp::List<capnp::MinHash::ReferenceList::Reference>::Reader referencesReader = referenceListReader.getReferences();
     uint64_t referenceCount = referencesReader.size();
     
@@ -730,6 +890,95 @@ uint64_t Sketch::initParametersFromCapnp(const char * file)
 	return referenceCount;
 }
 
+
+
+uint64_t Sketch::initParametersFingerPrintsFromCapnp(const char * file)
+{
+    int fd = open(file, O_RDONLY);
+    
+    if ( fd < 0 )
+    {
+        cerr << "ERROR: could not open \"" << file << "\" for reading." << endl;
+        exit(1);
+    }
+    
+    struct stat fileInfo;
+    
+    if ( stat(file, &fileInfo) == -1 )
+    {
+        cerr << "ERROR: could not get file stats for \"" << file << "\"." << endl;
+        exit(1);
+    }
+    
+    void * data = mmap(NULL, fileInfo.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    
+    if (data == MAP_FAILED)
+    {
+        uint64_t fileSize = fileInfo.st_size;
+        std::cerr << "Error: could not memory-map file " << file << " of size " << fileSize;
+        std::cerr << std::endl;
+        exit(1);
+    }
+
+    capnp::ReaderOptions readerOptions;
+    
+    readerOptions.traversalLimitInWords = 1000000000000;
+    readerOptions.nestingLimit = 1000000;
+    
+    //capnp::StreamFdMessageReader * message = new capnp::StreamFdMessageReader(fd, readerOptions);
+    capnp::FlatArrayMessageReader * message = new capnp::FlatArrayMessageReader(kj::ArrayPtr<const capnp::word>(reinterpret_cast<const capnp::word *>(data), fileInfo.st_size / sizeof(capnp::word)), readerOptions);
+    capnp::MinHash::Reader reader = message->getRoot<capnp::MinHash>();
+    
+    parameters.kmerSize = reader.getKmerSize();
+    parameters.error = reader.getError();
+    parameters.minHashesPerWindow = reader.getMinHashesPerWindow();
+    parameters.windowSize = reader.getWindowSize();
+    parameters.concatenated = reader.getConcatenated();
+    parameters.noncanonical = reader.getNoncanonical();
+   	parameters.preserveCase = reader.getPreserveCase();
+
+    capnp::MinHash::ReferenceList::Reader referenceListReader;
+    if(reader.getReferenceList().getReferences().size() >0 ){
+        
+        
+        referenceListReader = reader.getReferenceList();
+        cout<<"Sono qui La size delle references era >0 !"<<endl;
+
+    
+    }else{
+
+     referenceListReader = reader.getReferenceListOld();
+        cout<<"Sono qui La size delle references era <0 !"<<endl;
+    }
+    
+    capnp::List<capnp::MinHash::ReferenceList::Reference>::Reader referencesReader = referenceListReader.getReferences();
+    uint64_t referenceCount = referencesReader.size();
+    
+    cout<<" Sono nell'InitFromFingerPrints() "<<endl;
+
+    parameters.counts = referencesReader[0].hasCounts32();
+   	parameters.seed = reader.getHashSeed();
+    
+    if ( reader.hasAlphabet() )
+    {
+        cout<< "Sono nel reader Alphabet !"<<endl;
+    	setAlphabetFromString(parameters, reader.getAlphabet().cStr());
+    }
+    else
+    {
+        cout<< "Sono nel reader con non Alphabet !"<<endl;
+    	setAlphabetFromString(parameters, alphabetNucleotide);
+    }
+	close(fd);
+	
+	try
+	{
+		delete message;
+	}
+	catch (exception e) {}
+	
+	return referenceCount;
+}
 
 
 
@@ -948,29 +1197,35 @@ int Sketch::writeToCapnpFingerPrint(const char * file) const
     capnp::List<capnp::MinHash::ReferenceList::Reference>::Builder referencesBuilder = referenceListBuilder.initReferences(references.size());
 
     for (uint64_t i = 0; i < references.size(); i++)
-    {
-        //cout << "Processing reference " << i << ": " << references[i].name << endl;
+    {   
+        
+        cout << "Processing reference " << i << ": " << references[i].name << endl;
         capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
-
+        referenceBuilder.setId(references[i].id);   
         referenceBuilder.setName(references[i].name);
         referenceBuilder.setComment(references[i].comment);
         referenceBuilder.setLength64(references[i].length);
+        
+        cout << "Reference " << i << " has " << references[i].subSketch_list.size() << " sub-sketches" << endl;
 
         if (references[i].subSketch_list.size() != 0)
         {
-           // cout << "Reference " << i << " has " << references[i].subSketch_list.size() << " sub-sketches" << endl;
             // Initialize the SubSketch list in the Cap'n Proto message
             capnp::List<capnp::MinHash::SubSketch>::Builder subSketchListBuilder = referenceBuilder.initSubSketchList(references[i].subSketch_list.size());
 
             for (uint64_t j = 0; j < references[i].subSketch_list.size(); j++)
             {
                 const SubSketch & subsketch = references[i].subSketch_list.at(j);
+
                 capnp::MinHash::SubSketch::Builder subSketchBuilder = subSketchListBuilder[j];
 
                 subSketchBuilder.setId(subsketch.ID);
-                //cout << "ID SubSketch in Capnp: " << subsketch.ID << endl;
+
+                cout << "ID SubSketch in Capnp: " << subsketch.ID << endl;
+                
                 const HashList & hashes = subsketch.hashesSorted;
-                //cout << "Sono qua, dammi la size dell'Hash: " << hashes.size() << endl;
+                
+                cout << "Sono qua, dammi la size dell'Hash: " << hashes.size() << endl;
 
                 if (hashes.size() > 0)
                 {
@@ -1090,7 +1345,6 @@ void Sketch::createIndex()
 
 void Sketch::createIndexFingerPrint()
 {
-    cout << "Inizio della funzione createIndexFingerPrint" << endl;
 
     if (references.size() == 0)
     {
@@ -1108,7 +1362,6 @@ void Sketch::createIndexFingerPrint()
         }
 
         referenceIndecesById[references[i].id] = i;
-        cout << "posizione ID :" << referenceIndecesById[references[i].id] << " ID : " << references[i].id << endl;
 
         // Popola l'indice per i subSketch
         for (int j = 0; j < references[i].subSketch_list.size(); j++)
@@ -1122,7 +1375,6 @@ void Sketch::createIndexFingerPrint()
             }
 
             subSketchIndecesById[subsketch.ID] = std::make_pair(i, j);
-            cout << "posizione SubSketch ID :" << subSketchIndecesById[subsketch.ID].first << "," << subSketchIndecesById[subsketch.ID].second << " SubSketch ID : " << subsketch.ID << endl;
         }
     }
 
@@ -1579,7 +1831,7 @@ Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input)
         capnp::MinHash::ReferenceList::Reference::Reader referenceReader = referencesReader[i];
         
         Sketch::Reference & reference = references[i];
-        
+        reference.id = referenceReader.getId();
         reference.name = referenceReader.getName();
         reference.comment = referenceReader.getComment();
         
@@ -1704,6 +1956,142 @@ Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input)
     
     return output;
 }
+
+
+Sketch::SketchOutput * loadCapnpFingerPrint(Sketch::SketchInput * input)
+{
+	const char * file = input->fileNames[0].c_str();
+    int fd = open(file, O_RDONLY);
+    
+    struct stat fileInfo;
+    
+    if ( stat(file, &fileInfo) == -1 )
+    {
+        return 0;
+    }
+    
+	Sketch::SketchOutput * output = new Sketch::SketchOutput();
+	vector<Sketch::Reference> & references = output->references;
+	
+    void * data = mmap(NULL, fileInfo.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    
+    capnp::ReaderOptions readerOptions;
+    
+    readerOptions.traversalLimitInWords = 1000000000000;
+    readerOptions.nestingLimit = 1000000;
+    
+    capnp::FlatArrayMessageReader * message = new capnp::FlatArrayMessageReader(kj::ArrayPtr<const capnp::word>(reinterpret_cast<const capnp::word *>(data), fileInfo.st_size / sizeof(capnp::word)), readerOptions);
+    capnp::MinHash::Reader reader = message->getRoot<capnp::MinHash>();
+    
+    capnp::MinHash::ReferenceList::Reader referenceListReader = reader.getReferenceList().getReferences().size() ? reader.getReferenceList() : reader.getReferenceListOld();
+    
+    capnp::List<capnp::MinHash::ReferenceList::Reference>::Reader referencesReader = referenceListReader.getReferences();
+    
+    references.resize(referencesReader.size());
+    
+    for ( uint64_t i = 0; i < referencesReader.size(); i++ )
+    {
+        capnp::MinHash::ReferenceList::Reference::Reader referenceReader = referencesReader[i];
+        
+        Sketch::Reference & reference = references[i];
+
+        reference.id = referenceReader.getId();
+        reference.name = referenceReader.getName();
+        reference.comment = referenceReader.getComment();
+
+        if ( referenceReader.getLength64() )
+        {
+        	reference.length = referenceReader.getLength64();
+        }
+        else
+        {
+	        reference.length = referenceReader.getLength();
+	    }
+        
+        reference.hashesSorted.setUse64(input->parameters.use64);
+        uint64_t hashCount;
+        
+        // Verifico che i miei subsketch hanno una size >0 
+        if(referenceReader.getSubSketchList().size()!=0){
+
+
+            // Devo effettuare la resize dello sketch 
+            reference.subSketch_list.resize(referenceReader.getSubSketchList().size());
+
+            // Devo prendere la lista dei subsketch 
+            capnp::List<capnp::MinHash::SubSketch>::Reader subSketchListReader = referenceReader.getSubSketchList();
+
+            for(uint64_t j = 0; j < subSketchListReader.size(); j++){
+                
+                capnp::MinHash::SubSketch::Reader subSketchReader = subSketchListReader[j];
+
+                // Crea una nuova istanza di Sketch::SubSketch
+                Sketch::SubSketch subSketch;
+
+                subSketch.ID = subSketchReader.getId();
+
+                if ( subSketchReader.getHashes64().size()>0 ){
+
+                    
+                    capnp::List<uint64_t>::Reader hashesReader = subSketchReader.getHashes64();
+
+
+                    subSketch.hashesSorted.clear();
+                    
+                    subSketch.hashesSorted.resize(subSketchReader.getHashes64().size());
+                
+                    hashCount = hashesReader.size();
+
+                    
+                    if ( hashCount > input->parameters.minHashesPerWindow )
+                    {
+                        hashCount = input->parameters.minHashesPerWindow;
+                    }
+                    
+                
+                    for ( uint64_t j = 0; j < hashCount; j++ )
+                    {
+                        subSketch.hashesSorted.push_back64(hashesReader[j]);
+                    }
+                    
+                }
+                else{
+                    
+                    capnp::List<uint32_t>::Reader hashesReader = subSketchReader.getHashes32();
+                    
+                    subSketch.hashesSorted.clear();
+
+                    subSketch.hashesSorted.resize(subSketchReader.getHashes32().size());
+
+                    hashCount = hashesReader.size();
+                    
+                    if ( hashCount > input->parameters.minHashesPerWindow )
+                    {
+                        hashCount = input->parameters.minHashesPerWindow;
+                    }
+                    
+                
+                    for ( uint64_t j = 0; j < hashCount; j++ )
+                    {
+                        subSketch.hashesSorted.push_back32(hashesReader[j]);
+                    }
+
+                }
+
+
+                reference.subSketch_list.push_back(subSketch);
+            }
+        }
+    }
+    
+    munmap(data, fileInfo.st_size);
+    close(fd);
+    delete message;
+    
+    return output;
+}
+
+
 
 
 /* Array from 0..25 of DNA complement of A..Z */
