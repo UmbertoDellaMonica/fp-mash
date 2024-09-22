@@ -75,7 +75,7 @@ int CommandSketch::run() const
     }
     else if (fingerprint)
     {
-        sketch.initFromFingerprints(files, parameters); // Nuova funzione per fingerprint
+        sketch.initFromFingerprints3(files, parameters); // Nuova funzione per fingerprint
     }
     else
     {
@@ -116,7 +116,14 @@ int CommandSketch::run() const
     }
 
     cerr << "Writing to " << prefix << "..." << endl;
-    sketch.writeToCapnp(prefix.c_str());
+
+
+
+        //if(!fingerprint){
+        //sketch.writeToCapnp(prefix.c_str());
+        //}else{
+        sketch.writeToCapnpFingerPrint(prefix.c_str());
+        //}
 
     return 0;
 }

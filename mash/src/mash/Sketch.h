@@ -137,54 +137,30 @@ public:
     
 
     struct SubSketch {
-        std::string id;  // Identificativo con numero incrementale
-        std::vector<hash_u> hashes;  // Vettore di hash
+        
+        std::string ID;  // Identificativo con numero incrementale
+        
+        HashList hashesSorted;  // Vettore di hash
     };
-    /**
-     * La struttura Reference è una parte essenziale della classe Sketch e rappresenta un singolo riferimento (o una singola sequenza) all'interno dello sketch. 
-     * Questa struttura contiene vari parametri che descrivono dettagliatamente ogni riferimento:
-     * 
-     * Dettagli dei Parametri :
-    name:
-
-    Tipo: std::string
-    Descrizione: Il nome del riferimento. Questo nome viene utilizzato per identificare univocamente la sequenza all'interno dello sketch. Potrebbe essere il nome di un gene, una proteina, o qualsiasi altro identificatore biologico.
-
-    comment:
-
-    Tipo: std::string
-    Descrizione: Un commento opzionale associato al riferimento. Questo commento può contenere annotazioni descrittive aggiuntive sulla sequenza, come informazioni sull'origine della sequenza, note di ricerca, o altre annotazioni utili.
-
-    length:
-
-    Tipo: uint64_t
-    Descrizione: La lunghezza del riferimento in termini di numero di basi (nucleotidi per sequenze di DNA/RNA) o residui (amminoacidi per sequenze proteiche). Questo parametro aiuta a determinare la dimensione della sequenza.
-
-    hashesSorted:
-
-    Tipo: HashList
-    Descrizione: Una lista di hash che rappresentano i k-mer della sequenza. Gli hash sono ordinati. Ogni k-mer è una sotto-sequenza di lunghezza k della sequenza originale, e l'hashing è una tecnica per rappresentare queste sotto-sequenze in modo compatto.
-
-    counts:
-
-    Tipo: std::vector<uint32_t>
-    Descrizione: Un vettore che contiene il conteggio dei k-mer nella sequenza. Ogni elemento di questo vettore rappresenta il numero di volte che un determinato k-mer appare nella sequenza. Questo parametro è utile per analisi quantitative e per calcolare frequenze relative.
-
-    countsSorted:
-
-    Tipo: bool
-    Descrizione: Un flag booleano che indica se il vettore counts è ordinato. Se countsSorted è true, significa che i conteggi dei k-mer nel vettore counts sono ordinati. Questo può essere utile per alcune operazioni di ricerca e analisi che beneficiano dell'ordinamento.
-    Uso della Struttura Reference
-    La struttura Reference viene utilizzata per gestire e manipolare le informazioni associate a ciascun riferimento (sequenza) all'interno dello sketch.
-    È parte integrante delle funzioni che calcolano, analizzano e visualizzano i dati di sketching, come l'inizializzazione degli sketch, il calcolo degli istogrammi, e altre analisi basate sui k-mer. */
+    
+    
     struct Reference
     {
         std::string id;
+        
         std::string name;
+        
         std::string comment;
+        
         uint64_t length;
+
+        // Lista di SubSketch
+        std::vector<SubSketch> subSketch_list;
+        // Dovrà essere eliminato in seconda analisi 
         HashList hashesSorted;
+        
         std::vector<uint32_t> counts;
+        
         bool countsSorted;
     };
     
@@ -223,10 +199,18 @@ public:
     struct SketchOutput
     {
     	std::vector<Reference> references;
+
 	    std::vector<std::vector<PositionHash>> positionHashesByReference;
+    
     };
     
+
     void initFromFingerprints(const std::vector<std::string> & files, const Parameters & parametersNew);
+
+    void initFromFingerprints2(const std::vector<std::string> & files, const Parameters & parametersNew);
+
+    void initFromFingerprints3(const std::vector<std::string> & files, const Parameters & parametersNew);
+
     void getAlphabetAsString(std::string & alphabet) const;
     uint32_t getAlphabetSize() const {return parameters.alphabetSize;}
     bool getConcatenated() const {return parameters.concatenated;}
@@ -261,23 +245,41 @@ public:
 	bool sketchFileBySequence(FILE * file, ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> * threadPool);
 	void useThreadOutput(SketchOutput * output);
     void warnKmerSize(uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount) const;
-    bool writeToFile() const;
-    int writeToCapnp(const char * file) const;
+    //bool writeToFile() const;
+    //int writeToCapnp(const char * file) const;
+
+    int writeToCapnpFingerPrint(const char * file) const;
+
     
 private:
     
     void createIndex();
+
+    void createIndexFingerPrint();
     
     // Vettore dei riferimenti dello sketch 
     std::vector<Reference> references;
+    // Lista dei sotto sketch che posso usare all'interno del programma 
+    std::vector<SubSketch> subSketchList;
 
+
+    
     robin_hood::unordered_map<std::string, int> referenceIndecesById;
+
+    std::unordered_map<std::string, std::pair<int, int>> subSketchIndecesById; // Indice per i subSketch
+    
     std::vector<std::vector<PositionHash>> positionHashesByReference;
+
     robin_hood::unordered_map<hash_t, std::vector<Locus>> lociByHash;
     
+    
+    
     Parameters parameters;
+
     double kmerSpace;
     std::string file;
+
+
 };
 
 void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const Sketch::Parameters & parameters);

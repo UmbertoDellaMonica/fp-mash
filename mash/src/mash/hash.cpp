@@ -40,6 +40,36 @@ hash_u getHash(const char * seq, int length, uint32_t seed, bool use64)
 }
 
 
+hash_u getHashNumber(const uint64_t * seq, int length, uint32_t seed, bool use64)
+{
+    //for ( int i = 0; i < length; i++ ) { cout << *(seq + i); } cout << endl;
+    
+#ifdef ARCH_32
+    int data[use64 ? 8 : 4];
+    MurmurHash3_x86_32(seq, length > 16 ? 16 : length, seed, data);
+    if ( use64 )
+    {
+        MurmurHash3_x86_32(seq + 16, length - 16, seed, data + 4);
+    }
+#else
+    char data[16];
+    MurmurHash3_x64_128(seq, length, seed, data);
+#endif
+    
+    hash_u hash;
+    
+    if ( use64 )
+    {
+        hash.hash64 = *((hash64_t *)data);
+    }
+    else
+    {
+        hash.hash32 = *((hash32_t *)data);
+    }
+    
+    return hash;
+}
+
 
 /** getHashFingerPrint  */
 hash_u getHashFingerPrint(const std::vector<uint64_t>& seq, int length, uint32_t seed, bool use64)

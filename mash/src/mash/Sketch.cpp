@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <capnp/message.h>
 #include <capnp/serialize.h>
+#include <capnp/message.h>
+#include <capnp/serialize-packed.h>
 #include <sys/mman.h>
 #include <math.h>
 #include <list>
@@ -28,6 +30,7 @@
 #include <fstream>
 #include <sstream>
 #include <numeric>
+#include "hash.h"
 
 
 
@@ -58,10 +61,241 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
     parameters = parametersNew;
     
     int counterLine = 0;
+    robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
+                                                     // Vettore per memorizzare le reference finali
+    string lastID = ""; // Memorizza l'ultimo ID letto
+
+    cout << "Initializing from fingerprints..." << endl;
+
+    for (const string &file : files)
+    {
+        cout << "Processing file: " << file << endl;
+
+        ifstream inputFile(file);
+
+        if (!inputFile)
+        {
+            cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
+            exit(1);
+        }
+
+        string line;
+        Reference* currentReference = nullptr; // Puntatore alla reference corrente
+
+        while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
+        {
+            //cout << "Reading line: " << counterLine + 1 << endl;
+            counterLine++;
+
+            vector<uint64_t> fingerprint;
+
+            istringstream ss(line);
+            
+            uint64_t number;
+            string id;
+            ss >> id;
+
+            //cout << "Processing ID: " << id << endl;
+
+            while (ss >> number)
+            {
+                fingerprint.push_back(number);
+                if (ss.peek() == ' ') ss.ignore();
+            }
+
+            // Verifica se l'ID è diverso dall'ultimo ID
+            if (id != lastID)
+            {
+                // Nuovo ID, crea una nuova reference
+                if (currentReference != nullptr)
+                {
+                    //cout << "Adding reference for ID: " << lastID << endl;
+                    // Aggiungi la reference al vettore
+                    references.push_back(*currentReference);
+                    delete currentReference;
+                }
+
+                currentReference = new Reference;
+                currentReference->id = id; // Assegna l'ID estratto alla struttura Reference
+                currentReference->length = fingerprint.size(); // Numero di elementi nel fingerprint
+                currentReference->name = ""+id;
+                currentReference->comment = "FingerPrint : " + currentReference->id;
+                currentReference->hashesSorted.setUse64(parameters.use64);
+
+                // Aggiungi l'ID al set di ID processati
+                processedIDs.insert(id);
+
+                // Aggiorna l'ultimo ID
+                lastID = id;
+
+                //cout << "Created new reference for ID: " << id << endl;
+            }
+
+            // Calcola Hash in base64 
+            hash_u hash = getHashFingerPrint(fingerprint, fingerprint.size() * sizeof(uint64_t), parameters.seed, parameters.use64);
+            currentReference->hashesSorted.add(hash); // Usa il metodo add
+            currentReference->length = currentReference->length+fingerprint.size();
+
+            //cout << "Added hash for ID: " << id << endl;
+        }
+
+        if (currentReference != nullptr)
+        {
+            //cout << "Adding last reference for file: " << file << endl;
+            // Aggiungi l'ultima reference processata al vettore
+            references.push_back(*currentReference);
+            delete currentReference;
+        }
+    }
+
+    //cout << "Creating index..." << endl;
+    createIndex();
+    cout << "Initialization complete." << endl;
+}
+
+
+
+void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters &parametersNew)
+{
+    parameters = parametersNew;
+    
+    int counterLine = 0;
+    
+    robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
+    
+    string lastID = ""; // Memorizza l'ultimo ID letto
+
+    cout << "Initializing from fingerprints..." << endl;
+
+    for (const string &file : files)
+    {
+        cout << "Processing file: " << file << endl;
+
+        ifstream inputFile(file);
+
+        if (!inputFile)
+        {
+            cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
+            exit(1);
+        }
+
+        string line;
+        Reference* currentReference = nullptr; // Puntatore alla reference corrente
+        SubSketch* currentSubSketch = nullptr; // Puntatore al SubSketch corrente
+        cout << " Sono qui !" << endl;
+        while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
+        {
+            cout << "Reading line " << counterLine + 1 << endl;
+            counterLine++;
+
+            vector<uint64_t> fingerprint;
+
+            istringstream ss(line);
+            
+            uint64_t number;
+            string id;
+            ss >> id;
+
+            while (ss >> number)
+            {
+                fingerprint.push_back(number);
+                if (ss.peek() == ' ') ss.ignore();
+            }
+
+            cout << "Processed fingerprint for ID: " << id << " with " << fingerprint.size() << " numbers." << endl;
+
+            // Verifica se l'ID è diverso dall'ultimo ID
+            if (id != lastID)
+            {
+                // Nuovo ID, crea una nuova reference
+                if (currentReference != nullptr)
+                {
+                    // Aggiungi l'ultimo SubSketch alla reference corrente
+                    if (currentSubSketch != nullptr)
+                    {
+                        currentReference->subSketch_list.push_back(*currentSubSketch);
+                        delete currentSubSketch;
+                        currentSubSketch = nullptr;
+                    }
+
+                    // Aggiungi la reference al vettore
+                    references.push_back(*currentReference);
+                    delete currentReference;
+                    cout << "Added reference for ID: " << lastID << endl;
+                }
+
+                currentReference = new Reference;
+                currentReference->id = id; // Assegna l'ID estratto alla struttura Reference
+                currentReference->length = 0; // Inizialmente 0, verrà incrementato
+                currentReference->name = id;
+                currentReference->comment = "FingerPrint : " + currentReference->id;
+                currentReference->countsSorted = false; // Inizialmente non ordinato
+
+                // Aggiungi l'ID al set di ID processati
+                processedIDs.insert(id);
+
+                // Aggiorna l'ultimo ID
+                lastID = id;
+
+                cout << "Created new reference for ID: " << id << endl;
+            }
+
+            // Crea un nuovo SubSketch per ogni linea letta
+            currentSubSketch = new SubSketch;
+            string sub_id = to_string(counterLine);
+            currentSubSketch->ID = id + "_" + sub_id; // Usa il numero di linea come ID unico
+            currentSubSketch->hashesSorted.setUse64(parameters.use64);
+
+            // Calcola Hash in base64 
+            for (uint64_t num : fingerprint)
+            {
+                hash_u hash = getHashNumber(&num, sizeof(uint64_t), parameters.seed, parameters.use64);
+                currentSubSketch->hashesSorted.add(hash); // Usa il metodo add
+                cout << "Added hash for number: " << num << " in SubSketch ID: " << currentSubSketch->ID << " HASH : " << to_string(hash.hash64) << endl;
+            }
+
+            currentReference->subSketch_list.push_back(*currentSubSketch);
+            // Incrementa la lunghezza della reference
+            currentReference->length += fingerprint.size();
+
+            // Elimina il SubSketch corrente per evitare perdite di memoria
+            delete currentSubSketch;
+            currentSubSketch = nullptr;
+        }
+
+        if (currentReference != nullptr)
+        {
+            // Aggiungi l'ultimo SubSketch alla reference corrente
+            if (currentSubSketch != nullptr)
+            {
+                currentReference->subSketch_list.push_back(*currentSubSketch);
+                delete currentSubSketch;
+            }
+
+            // Aggiungi l'ultima reference processata al vettore
+            references.push_back(*currentReference);
+            delete currentReference;
+            cout << "Added last reference for file: " << file << endl;
+        }
+    }
+
+    createIndexFingerPrint();
+    cout << "Initialization complete." << endl;
+}
+
+
+void Sketch::initFromFingerprints2(const vector<string> &files, const Parameters &parametersNew)
+{
+    parameters = parametersNew;
+    
+    int counterLine = 0;
     unordered_map<string, int> idCounter;
     robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
                                                      // Vettore per memorizzare le reference finali
     string lastID = ""; // Memorizza l'ultimo ID letto
+
+
+    vector<SubSketch> subsketch_list; // Variabile locale per memorizzare i subsketch
 
     cout << "Initializing from fingerprints..." << endl;
 
@@ -100,9 +334,9 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
 
                 // Crea un nuovo sub-sketch per l'ID con numero incrementale
             SubSketch subSketch;
-            subSketch.id = to_string(idCounter[id]) + "_" + id;  // Usa il contatore corrente
+            subSketch.ID = to_string(idCounter[id]) + "_" + id;  // Usa il contatore corrente
             idCounter[id]++;  // Incrementa il contatore per l'ID
-            cout << subSketch.id << endl;
+            cout << subSketch.ID << endl;
 
 
             while (ss >> number)
@@ -163,7 +397,7 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
                     vector<uint64_t> numVector;
                     numVector.push_back(num); // Usa push_back per aggiungere num
                     hash_u hash = getHashFingerPrint(numVector, sizeof(uint64_t), parameters.seed, parameters.use64);
-                    subSketch.hashes.push_back(hash);  // Aggiungi l'hash al subsketch
+                    subSketch.hashesSorted.add(hash);  // Aggiungi l'hash al subsketch
                 }
 
                 // Aggiungi il subsketch alla lista
@@ -174,7 +408,9 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
     createIndex();
     cout << "Initialization complete." << endl;
 }
-    
+}
+
+
 
 
 const vector<Sketch::Locus> & Sketch::getLociByHash(Sketch::hash_t hash) const
@@ -553,13 +789,18 @@ void Sketch::useThreadOutput(SketchOutput * output)
 	delete output;
 }
 
-bool Sketch::writeToFile() const
+/*bool Sketch::writeToFile() const
 {
     return writeToCapnp(file.c_str()) == 0;
 }
 
-int Sketch::writeToCapnp(const char * file) const
+
+
+
+
+/*int Sketch::writeToCapnp(const char * file) const
 {
+    cout << "Opening file: " << file << endl;
     int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC , 0644);
     
     if ( fd < 0 )
@@ -568,15 +809,19 @@ int Sketch::writeToCapnp(const char * file) const
         exit(1);
     }
     
+    cout << "Initializing Cap'n Proto message builder" << endl;
     capnp::MallocMessageBuilder message;
     capnp::MinHash::Builder builder = message.initRoot<capnp::MinHash>();
     
+    cout << "Initializing ReferenceList builder" << endl;
     capnp::MinHash::ReferenceList::Builder referenceListBuilder = (parameters.seed == 42 ? builder.initReferenceListOld() : builder.initReferenceList());
     
+    cout << "Initializing references builder with size: " << references.size() << endl;
     capnp::List<capnp::MinHash::ReferenceList::Reference>::Builder referencesBuilder = referenceListBuilder.initReferences(references.size());
     
     for ( uint64_t i = 0; i < references.size(); i++ )
     {
+        cout << "Processing reference " << i << ": " << references[i].name << endl;
         capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
         
         referenceBuilder.setName(references[i].name);
@@ -585,10 +830,12 @@ int Sketch::writeToCapnp(const char * file) const
         
         if ( references[i].hashesSorted.size() != 0 )
         {
+            cout << "Reference " << i << " has " << references[i].hashesSorted.size() << " hashes" << endl;
             const HashList & hashes = references[i].hashesSorted;
             
             if ( parameters.use64 )
             {
+                cout << "Using 64-bit hashes" << endl;
                 capnp::List<uint64_t>::Builder hashes64Builder = referenceBuilder.initHashes64(hashes.size());
             
                 for ( uint64_t j = 0; j != hashes.size(); j++ )
@@ -598,6 +845,7 @@ int Sketch::writeToCapnp(const char * file) const
             }
             else
             {
+                cout << "Using 32-bit hashes" << endl;
                 capnp::List<uint32_t>::Builder hashes32Builder = referenceBuilder.initHashes32(hashes.size());
             
                 for ( uint64_t j = 0; j != hashes.size(); j++ )
@@ -608,27 +856,30 @@ int Sketch::writeToCapnp(const char * file) const
             
             if ( references[i].counts.size() > 0 && parameters.counts )
             {
-            	const vector<uint32_t> & counts = references[i].counts;
-            	
+                cout << "Reference " << i << " has counts" << endl;
+                const vector<uint32_t> & counts = references[i].counts;
+                
                 capnp::List<uint32_t>::Builder countsBuilder = referenceBuilder.initCounts32(counts.size());
                 
-				for ( uint64_t j = 0; j != counts.size(); j++ )
-				{
-					countsBuilder.set(j, counts.at(j));
-				}
-				
-				referenceBuilder.setCounts32Sorted(true);
-			}
+                for ( uint64_t j = 0; j != counts.size(); j++ )
+                {
+                    countsBuilder.set(j, counts.at(j));
+                }
+                
+                referenceBuilder.setCounts32Sorted(true);
+            }
         }
     }
     
     int locusCount = 0;
     
+    cout << "Calculating total locus count" << endl;
     for ( int i = 0; i < positionHashesByReference.size(); i++ )
     {
         locusCount += positionHashesByReference.at(i).size();
     }
     
+    cout << "Total locus count: " << locusCount << endl;
     capnp::MinHash::LocusList::Builder locusListBuilder = builder.initLocusList();
     capnp::List<capnp::MinHash::LocusList::Locus>::Builder lociBuilder = locusListBuilder.initLoci(locusCount);
     
@@ -638,6 +889,7 @@ int Sketch::writeToCapnp(const char * file) const
     {
         for ( int j = 0; j < positionHashesByReference.at(i).size(); j++ )
         {
+            cout << "Processing locus " << locusIndex << " for reference " << i << endl;
             capnp::MinHash::LocusList::Locus::Builder locusBuilder = lociBuilder[locusIndex];
             locusIndex++;
             
@@ -647,6 +899,7 @@ int Sketch::writeToCapnp(const char * file) const
         }
     }
     
+    cout << "Setting general parameters" << endl;
     builder.setKmerSize(parameters.kmerSize);
     builder.setHashSeed(parameters.seed);
     builder.setError(parameters.error);
@@ -660,19 +913,167 @@ int Sketch::writeToCapnp(const char * file) const
     getAlphabetAsString(alphabet);
     builder.setAlphabet(alphabet);
     
+    cout << "Writing message to file" << endl;
     writeMessageToFd(fd, message);
     close(fd);
     
+    cout << "Finished writing to file" << endl;
+    
+    return 0;
+}*/
+
+
+int Sketch::writeToCapnpFingerPrint(const char * file) const
+{
+    cout << "Opening file: " << file << endl;
+    int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC , 0644);
+
+    cout<< "FILE Name : "<< file<< endl;
+
+
+    if (fd < 0)
+    {
+        cerr << "ERROR: could not open " << file << " for writing.\n";
+        exit(1);
+    }
+
+    cout << "Initializing Cap'n Proto message builder" << endl;
+    capnp::MallocMessageBuilder message;
+    capnp::MinHash::Builder builder = message.initRoot<capnp::MinHash>();
+
+    cout << "Initializing ReferenceList builder" << endl;
+    capnp::MinHash::ReferenceList::Builder referenceListBuilder = (parameters.seed == 42 ? builder.initReferenceListOld() : builder.initReferenceList());
+
+    cout << "Initializing references builder with size: " << references.size() << endl;
+    capnp::List<capnp::MinHash::ReferenceList::Reference>::Builder referencesBuilder = referenceListBuilder.initReferences(references.size());
+
+    for (uint64_t i = 0; i < references.size(); i++)
+    {
+        //cout << "Processing reference " << i << ": " << references[i].name << endl;
+        capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
+
+        referenceBuilder.setId(references[i].name);
+        referenceBuilder.setName(references[i].name);
+        referenceBuilder.setComment(references[i].comment);
+        referenceBuilder.setLength64(references[i].length);
+
+        if (references[i].subSketch_list.size() != 0)
+        {
+           // cout << "Reference " << i << " has " << references[i].subSketch_list.size() << " sub-sketches" << endl;
+            // Initialize the SubSketch list in the Cap'n Proto message
+            capnp::List<capnp::MinHash::SubSketch>::Builder subSketchListBuilder = referenceBuilder.initSubSketchList(references[i].subSketch_list.size());
+
+            for (uint64_t j = 0; j < references[i].subSketch_list.size(); j++)
+            {
+                const SubSketch & subsketch = references[i].subSketch_list.at(j);
+                capnp::MinHash::SubSketch::Builder subSketchBuilder = subSketchListBuilder[j];
+
+                subSketchBuilder.setId(subsketch.ID);
+                //cout << "ID SubSketch in Capnp: " << subsketch.ID << endl;
+                const HashList & hashes = subsketch.hashesSorted;
+                //cout << "Sono qua, dammi la size dell'Hash: " << hashes.size() << endl;
+
+                if (hashes.size() > 0)
+                {
+                    //cout << "Initializing 64-bit hashes builder for SubSketch" << endl;
+                    capnp::List<double>::Builder hashes64Builder = subSketchBuilder.initHashes64(hashes.size());
+                    //cout << "Ho superato questa barriera!" << endl;
+                    for (uint64_t k = 0; k != hashes.size(); k++)
+                    {
+                        hashes64Builder.set(k, hashes.at(k).hash64);
+                        //cout << "Hash utilizzato del SubSketch: " << hashes.at(k).hash64 << endl;
+                    }
+                }
+                else
+                {
+                    //cout << "No hashes found for SubSketch " << subsketch.ID << endl;
+                }
+            }
+        }
+
+        if (references[i].counts.size() > 0 && parameters.counts)
+        {
+            //cout << "Reference " << i << " has counts" << endl;
+            const vector<uint32_t> & counts = references[i].counts;
+
+            capnp::List<uint32_t>::Builder countsBuilder = referenceBuilder.initCounts32(counts.size());
+
+            for (uint64_t j = 0; j != counts.size(); j++)
+            {
+                countsBuilder.set(j, counts.at(j));
+            }
+
+            referenceBuilder.setCounts32Sorted(true);
+        }
+    }
+
+    // Remove or comment out the LocusList related code
+    /*
+    int locusCount = 0;
+
+    cout << "Calculating total locus count" << endl;
+    for (int i = 0; i < positionHashesByReference.size(); i++)
+    {
+        locusCount += positionHashesByReference.at(i).size();
+    }
+
+    cout << "Total locus count: " << locusCount << endl;
+    capnp::MinHash::LocusList::Builder locusListBuilder = builder.initLocusList();
+    capnp::List<capnp::MinHash::LocusList::Locus>::Builder lociBuilder = locusListBuilder.initLoci(locusCount);
+
+    int locusIndex = 0;
+
+    for (int i = 0; i < positionHashesByReference.size(); i++)
+    {
+        for (int j = 0; j < positionHashesByReference.at(i).size(); j++)
+        {
+            cout << "Processing locus " << locusIndex << " for reference " << i << endl;
+            capnp::MinHash::LocusList::Locus::Builder locusBuilder = lociBuilder[locusIndex];
+            locusIndex++;
+
+            locusBuilder.setSequence(i);
+            locusBuilder.setPosition(positionHashesByReference.at(i).at(j).position);
+            locusBuilder.setHash64(positionHashesByReference.at(i).at(j).hash);
+        }
+    }
+    */
+
+    cout << "Setting general parameters" << endl;
+    builder.setKmerSize(parameters.kmerSize);
+    builder.setHashSeed(parameters.seed);
+    builder.setError(parameters.error);
+    builder.setMinHashesPerWindow(parameters.minHashesPerWindow);
+    builder.setWindowSize(parameters.windowSize);
+    builder.setConcatenated(parameters.concatenated);
+    builder.setNoncanonical(parameters.noncanonical);
+    builder.setPreserveCase(parameters.preserveCase);
+
+    string alphabet;
+    getAlphabetAsString(alphabet);
+    builder.setAlphabet(alphabet);
+
+    cout << "Writing message to file" << endl;
+    capnp::writeMessageToFd(fd, message);
+    close(fd);
+
+    cout << "Finished writing to file" << endl;
+
     return 0;
 }
 
+
+
 void Sketch::createIndex()
 {
+
+
     for ( int i = 0; i < references.size(); i++ )
     {
         referenceIndecesById[references[i].id] = i;
     }
     
+
+
     for ( int i = 0; i < positionHashesByReference.size(); i++ )
     {
         for ( int j = 0; j < positionHashesByReference.at(i).size(); j++ )
@@ -685,6 +1086,68 @@ void Sketch::createIndex()
     
     kmerSpace = pow(parameters.alphabetSize, parameters.kmerSize);
 }
+
+
+
+void Sketch::createIndexFingerPrint()
+{
+    cout << "Inizio della funzione createIndexFingerPrint" << endl;
+
+    if (references.size() == 0)
+    {
+        cerr << "ERROR: references is empty." << endl;
+        return;
+    }
+
+    // Popola l'indice delle referenze basato su ID
+    for (int i = 0; i < references.size(); i++)
+    {
+        if (references[i].id.empty())
+        {
+            cerr << "ERROR: references[" << i << "].id is empty." << endl;
+            return;
+        }
+
+        referenceIndecesById[references[i].id] = i;
+        cout << "posizione ID :" << referenceIndecesById[references[i].id] << " ID : " << references[i].id << endl;
+
+        // Popola l'indice per i subSketch
+        for (int j = 0; j < references[i].subSketch_list.size(); j++)
+        {
+            const SubSketch & subsketch = references[i].subSketch_list.at(j);
+
+            if (subsketch.ID.empty())
+            {
+                cerr << "ERROR: references[" << i << "].subSketch_list[" << j << "].ID is empty." << endl;
+                return;
+            }
+
+            subSketchIndecesById[subsketch.ID] = std::make_pair(i, j);
+            cout << "posizione SubSketch ID :" << subSketchIndecesById[subsketch.ID].first << "," << subSketchIndecesById[subsketch.ID].second << " SubSketch ID : " << subsketch.ID << endl;
+        }
+    }
+
+    // Controlla che alphabetSize e kmerSize siano validi
+    if (parameters.alphabetSize <= 0 || parameters.kmerSize <= 0)
+    {
+        cerr << "ERROR: alphabetSize and kmerSize must be greater than 0." << endl;
+        return;
+    }
+
+    // Calcola lo spazio dei k-mer
+    kmerSpace = pow(parameters.alphabetSize, parameters.kmerSize);
+    cout << "kmerSpace: " << kmerSpace << endl;
+
+    cout << "Fine della funzione createIndexFingerPrint" << endl;
+}
+
+
+
+
+
+
+
+
 
 void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
@@ -1185,16 +1648,16 @@ Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input)
         reference.countsSorted = referenceReader.getCounts32Sorted();
     }
     
-    capnp::MinHash::LocusList::Reader locusListReader = reader.getLocusList();
-    capnp::List<capnp::MinHash::LocusList::Locus>::Reader lociReader = locusListReader.getLoci();
+    //capnp::MinHash::LocusList::Reader locusListReader = reader.getLocusList();
+    //capnp::List<capnp::MinHash::LocusList::Locus>::Reader lociReader = locusListReader.getLoci();
     
     output->positionHashesByReference.resize(references.size());
     
-    for ( uint64_t i = 0; i < lociReader.size(); i++ )
+    /*for ( uint64_t i = 0; i < lociReader.size(); i++ )
     {
-        capnp::MinHash::LocusList::Locus::Reader locusReader = lociReader[i];
+        //capnp::MinHash::LocusList::Locus::Reader locusReader = lociReader[i];
         //cout << locusReader.getHash64() << '\t' << locusReader.getSequence() << '\t' << locusReader.getPosition() << endl;
-        output->positionHashesByReference[locusReader.getSequence()].push_back(Sketch::PositionHash(locusReader.getPosition(), locusReader.getHash64()));
+        //output->positionHashesByReference[locusReader.getSequence()].push_back(Sketch::PositionHash(locusReader.getPosition(), locusReader.getHash64()));
     }
     
     /*
