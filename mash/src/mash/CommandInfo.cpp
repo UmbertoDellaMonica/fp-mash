@@ -288,7 +288,7 @@ int CommandInfo::writeJson(const Sketch &sketch) const
     string alphabet;
     sketch.getAlphabetAsString(alphabet);
     bool use64 = sketch.getUse64();
-    
+
     cout << "{" << endl;
     cout << "  \"kmer\" : " << sketch.getKmerSize() << ',' << endl;
     cout << "  \"alphabet\" : \"" << alphabet << "\"," << endl;
@@ -300,88 +300,79 @@ int CommandInfo::writeJson(const Sketch &sketch) const
     cout << "  \"hashSeed\" : " << sketch.getHashSeed() << ',' << endl;
     cout << "  \"sketches\" :" << endl;
     cout << "  [" << endl;
-    
-    for (uint64_t i = 0; i < sketch.getReferenceCount(); i++){
-    
+
+    for (uint64_t i = 0; i < sketch.getReferenceCount(); i++)
+    {
         const Sketch::Reference &ref = sketch.getReference(i);
-        
+
         cout << "    {" << endl;
-        cout << "    \"ID\" : \"" << ref.id << "\"," << endl;
+        cout << "      \"ID\" : \"" << ref.id << "\"," << endl;
         cout << "      \"name\" : \"" << ref.name << "\"," << endl;
         cout << "      \"length\" : " << ref.length << ',' << endl;
         cout << "      \"comment\" : \"" << ref.comment << "\"," << endl;
         cout << "      \"SubSketch\" :" << endl;
-        
         cout << "      [" << endl;
 
-
-        cout << "SIZE SUBSKETCH_LIST : "<< ref.subSketch_list.size();
-        
-        // Itero su ogni SubSketch 
+        bool firstSubSketch = true;
         for (int j = 0; j < ref.subSketch_list.size(); j++)
         {
-            
             const Sketch::SubSketch &subSketch = ref.subSketch_list[j];
-            
+
+            // **CONTROLLA** se il SubSketch ha ID vuoto o hash vuoti e salta
+            if (subSketch.ID.empty() || subSketch.hashesSorted.size() == 0)
+            {
+                continue; // Salta questo SubSketch
+            }
+
+            if (!firstSubSketch)
+            {
+                cout << "," << endl;
+            }
+            firstSubSketch = false;
+
             cout << "        {" << endl;
             cout << "          \"ID\" : \"" << subSketch.ID << "\"," << endl;
             cout << "          \"hashesSorted\" : [" << endl;
-            
+
+            // Stampa solo gli hash non nulli
+            bool firstHash = true;
             for (size_t k = 0; k < subSketch.hashesSorted.size(); k++)
             {
-                cout << "            " << subSketch.hashesSorted.at(k).hash64;
-                if (k < subSketch.hashesSorted.size() - 1)
+                if (subSketch.hashesSorted.at(k).hash64 == 0)
                 {
-                    cout << ",";
+                    continue; // Salta gli hash che sono 0
                 }
-                cout << endl;
-            }
-            
-            cout << "          ]" << endl;
-            cout << "        }";
-            if (j < ref.subSketch_list.size() - 1)
-            {
-                cout << ",";
-            }
-            cout << endl;
-        }
-        
-        cout << "      ]" << endl;
-        
 
-        if (ref.countsSorted)
-        {
-            cout << "      \"counts\" :" << endl;
-            cout << "      [" << endl;
-        
-            for (int j = 0; j < ref.counts.size(); j++)
-            {
-                cout << "        " << ref.counts.at(j);
-                
-                if (j < ref.counts.size() - 1)
+                if (!firstHash)
                 {
-                    cout << ',';
+                    cout << "," << endl;
                 }
-                
-                cout << endl;
+                firstHash = false;
+
+                cout << "            " << subSketch.hashesSorted.at(k).hash64;
             }
-        
-            cout << "      ]" << endl;
+
+            cout << endl << "          ]" << endl;
+            cout << "        }";
         }
-        
+
+        cout << endl << "      ]" << endl;
+        cout << "    }";
         if (i < sketch.getReferenceCount() - 1)
         {
-            cout << "    }," << endl;
+            cout << "," << endl;
         }
         else
         {
-            cout << "    }" << endl;
+            cout << endl;
         }
     }
     cout << "  ]" << endl;
     cout << "}" << endl;
 
     return 0;
-    }
+}
+
+
     
 }

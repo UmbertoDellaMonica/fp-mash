@@ -158,21 +158,15 @@ void Sketch::initFromFingerprints(const vector<string> &files, const Parameters 
 void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters &parametersNew)
 {
     parameters = parametersNew;
-    
     int counterLine = 0;
-    
-    robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
-    
-    string lastID = ""; // Memorizza l'ultimo ID letto
-
+    robin_hood::unordered_set<string> processedIDs;
+    string lastID = "";
     cout << "Initializing from fingerprints..." << endl;
 
     for (const string &file : files)
     {
         cout << "Processing file: " << file << endl;
-
         ifstream inputFile(file);
-
         if (!inputFile)
         {
             cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
@@ -180,18 +174,13 @@ void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters
         }
 
         string line;
-        Reference* currentReference = nullptr; // Puntatore alla reference corrente
-        SubSketch* currentSubSketch = nullptr; // Puntatore al SubSketch corrente
-        cout << " Sono qui !" << endl;
+        Reference* currentReference = nullptr;
+        SubSketch* currentSubSketch = nullptr;
         while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
         {
-            cout << "Reading line " << counterLine + 1 << endl;
             counterLine++;
-
             vector<uint64_t> fingerprint;
-
             istringstream ss(line);
-            
             uint64_t number;
             string id;
             ss >> id;
@@ -202,76 +191,52 @@ void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters
                 if (ss.peek() == ' ') ss.ignore();
             }
 
-            cout << "Processed fingerprint for ID: " << id << " with " << fingerprint.size() << " numbers." << endl;
-
-            // Verifica se l'ID è diverso dall'ultimo ID
+            // Se l'ID è nuovo, crea una nuova reference
             if (id != lastID)
             {
-                // Nuovo ID, crea una nuova reference
                 if (currentReference != nullptr)
                 {
-                    // Aggiungi l'ultimo SubSketch alla reference corrente
                     if (currentSubSketch != nullptr)
                     {
                         currentReference->subSketch_list.push_back(*currentSubSketch);
                         delete currentSubSketch;
                         currentSubSketch = nullptr;
                     }
-
-                    // Aggiungi la reference al vettore
                     references.push_back(*currentReference);
                     delete currentReference;
-                    cout << "Added reference for ID: " << lastID << endl;
                 }
 
                 currentReference = new Reference;
-                currentReference->id = id; // Assegna l'ID estratto alla struttura Reference
-                currentReference->length = 0; // Inizialmente 0, verrà incrementato
+                currentReference->id = id;
                 currentReference->name = id;
                 currentReference->comment = "FingerPrint : " + currentReference->id;
-                currentReference->countsSorted = false; // Inizialmente non ordinato
-
-                // Aggiungi l'ID al set di ID processati
-                processedIDs.insert(id);
-
-                // Aggiorna l'ultimo ID
                 lastID = id;
-
-                cout << "Created new reference for ID: " << id << endl;
             }
 
-            // Crea un nuovo SubSketch per ogni linea letta
+            // Crea un nuovo SubSketch
             currentSubSketch = new SubSketch;
             string sub_id = to_string(counterLine);
-            currentSubSketch->ID = id + "_" + sub_id; // Usa il numero di linea come ID unico
+            currentSubSketch->ID = id + "_" + sub_id;
             currentSubSketch->hashesSorted.setUse64(parameters.use64);
 
-            // Calcola Hash in base64 
+            // Calcola hash e inserisci solo valori diversi da 0
             for (uint64_t num : fingerprint)
             {
                 hash_u hash = getHashNumber(&num, sizeof(uint64_t), parameters.seed, parameters.use64);
-                currentSubSketch->hashesSorted.add(hash); // Usa il metodo add
+                if (hash.hash64 != 0) // Aggiungi solo hash non nulli
+                {
+                    currentSubSketch->hashesSorted.add(hash);
+                }
             }
 
             currentReference->subSketch_list.push_back(*currentSubSketch);
-            // Incrementa la lunghezza della reference
             currentReference->length += fingerprint.size();
-
-            // Elimina il SubSketch corrente per evitare perdite di memoria
             delete currentSubSketch;
             currentSubSketch = nullptr;
         }
 
         if (currentReference != nullptr)
         {
-            // Aggiungi l'ultimo SubSketch alla reference corrente
-            if (currentSubSketch != nullptr)
-            {
-                currentReference->subSketch_list.push_back(*currentSubSketch);
-                delete currentSubSketch;
-            }
-
-            // Aggiungi l'ultima reference processata al vettore
             references.push_back(*currentReference);
             delete currentReference;
         }
@@ -280,6 +245,7 @@ void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters
     createIndexFingerPrint();
     cout << "Initialization complete." << endl;
 }
+
 
 
 void Sketch::initFromFingerprints2(const vector<string> &files, const Parameters &parametersNew)
