@@ -214,16 +214,26 @@ public:
     void initFromFingerprints3(const std::vector<std::string> & files, const Parameters & parametersNew);
 
     void getAlphabetAsString(std::string & alphabet) const;
+    
     uint32_t getAlphabetSize() const {return parameters.alphabetSize;}
+    
     bool getConcatenated() const {return parameters.concatenated;}
+    
     float getError() const {return parameters.error;}
+
     int getHashCount() const {return lociByHash.size();}
+    
     uint32_t getHashSeed() const {return parameters.seed;}
+    
     const std::vector<Locus> & getLociByHash(hash_t hash) const;
+    
     float getMinHashesPerWindow() const {return parameters.minHashesPerWindow;}
-	int getMinKmerSize(uint64_t reference) const;
-	bool getPreserveCase() const {return parameters.preserveCase;}
-	double getRandomKmerChance(uint64_t reference) const;
+	
+    int getMinKmerSize(uint64_t reference) const;
+	
+    bool getPreserveCase() const {return parameters.preserveCase;}
+	
+    double getRandomKmerChance(uint64_t reference) const;
     
     
     
