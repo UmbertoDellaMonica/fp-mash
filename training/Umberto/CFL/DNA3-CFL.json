@@ -1,6 +1,49 @@
- ACTIVE OPTION HEADER ? : 0
- ACTIVE OPTION TABULAR ? : 0
- ACTIVE OPTION COUNTS ? : 0
- ACTIVE OPTION DUMP ? : 0
- ACTIVE OPTION FINGERPRINT ? : 1
-Va qui !
+I'm Here ! ... in sketch fingerprint
+Initializing from fingerprints...
+Processing file: ../training/Umberto/CFL/DNA3-CFL.txt
+kmerSpace: 10
+Fine della funzione createIndexFingerPrint
+Initialization complete.
+Opening file: ../training/Umberto/CFL/DNA3-CFL.txt.msh
+FILE Name : ../training/Umberto/CFL/DNA3-CFL.txt.msh
+Initializing Cap'n Proto message builder
+Initializing ReferenceList builder
+Initializing references builder with size: 5
+Processing reference 0: G00000EURBR8GN_0
+ Set ID : G00000EURBR8GN_0
+ Set name: G00000EURBR8GN_0
+ Set comment : FingerPrint : G00000EURBR8GN_0
+ Set Length: 7955925901184486199
+ Set use64 : œ
+ Sono qui !
+Processing reference 1: G00000GRBH28U8_0
+ Set ID : G00000GRBH28U8_0
+ Set name: G00000GRBH28U8_0
+ Set comment : FingerPrint : G00000GRBH28U8_0
+ Set Length: 7955925901184496840
+ Set use64 : œ
+ Sono qui !
+Processing reference 2: G00000FUTOPX8F_0
+ Set ID : G00000FUTOPX8F_0
+ Set name: G00000FUTOPX8F_0
+ Set comment : FingerPrint : G00000FUTOPX8F_0
+ Set Length: 7955925901184507338
+ Set use64 : œ
+ Sono qui !
+Processing reference 3: G00000URDOICNQ_0
+ Set ID : G00000URDOICNQ_0
+ Set name: G00000URDOICNQ_0
+ Set comment : FingerPrint : G00000URDOICNQ_0
+ Set Length: 7955925901184518028
+ Set use64 : œ
+ Sono qui !
+Processing reference 4: G00000YNXQBC1Y_0
+ Set ID : G00000YNXQBC1Y_0
+ Set name: G00000YNXQBC1Y_0
+ Set comment : FingerPrint : G00000YNXQBC1Y_0
+ Set Length: 7955925901184528638
+ Set use64 : œ
+ Sono qui !
+Setting general parameters
+Writing message to file
+Finished writing to file
