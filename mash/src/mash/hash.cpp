@@ -114,3 +114,6 @@ bool hashLessThan(hash_u hash1, hash_u hash2, bool use64)
         return hash1.hash32 < hash2.hash32;
     }
 }
+
+
+

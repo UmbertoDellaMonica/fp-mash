@@ -25,12 +25,6 @@ static const char * suffixSketchWindowed = ".msw";
 static const char * alphabetNucleotide = "ACGT";
 static const char * alphabetProtein = "ACDEFGHIKLMNPQRSTVWY";
 
-// FingerPrint section 
-static const char * suffixFingerprint = ".txt";
-
-
-
-
 class Sketch
 {
 public:
@@ -109,7 +103,6 @@ public:
         double targetCov;
         uint64_t genomeSize;
         bool counts;
-        bool fingerprint = false; // Nuovo parametro
     };
     
     struct PositionHash
@@ -135,35 +128,14 @@ public:
         uint32_t position;
     };
     
-
-    struct SubSketch {
-        
-        std::string ID;  // Identificativo con numero incrementale
-        
-        HashList hashesSorted;  // Vettore di hash
-    };
-    
-    
     struct Reference
     {
-        std::string id;
-        
         std::string name;
-        
         std::string comment;
-        
         uint64_t length;
-
-        // Lista di SubSketch
-        std::vector<SubSketch> subSketch_list;
-        // Dovrà essere eliminato in seconda analisi 
         HashList hashesSorted;
-        
         std::vector<uint32_t> counts;
-        
         bool countsSorted;
-
-
     };
     
     struct SketchInput
@@ -201,127 +173,60 @@ public:
     struct SketchOutput
     {
     	std::vector<Reference> references;
-
 	    std::vector<std::vector<PositionHash>> positionHashesByReference;
-    
     };
     
-
-    void initFromFingerprints(const std::vector<std::string> & files, const Parameters & parametersNew);
-
-    void initFromFingerprints2(const std::vector<std::string> & files, const Parameters & parametersNew);
-
-    void initFromFingerprints3(const std::vector<std::string> & files, const Parameters & parametersNew);
-
     void getAlphabetAsString(std::string & alphabet) const;
-    
     uint32_t getAlphabetSize() const {return parameters.alphabetSize;}
-    
     bool getConcatenated() const {return parameters.concatenated;}
-    
     float getError() const {return parameters.error;}
-
     int getHashCount() const {return lociByHash.size();}
-    
     uint32_t getHashSeed() const {return parameters.seed;}
-    
     const std::vector<Locus> & getLociByHash(hash_t hash) const;
-    
     float getMinHashesPerWindow() const {return parameters.minHashesPerWindow;}
-	
-    int getMinKmerSize(uint64_t reference) const;
-	
-    bool getPreserveCase() const {return parameters.preserveCase;}
-	
-    double getRandomKmerChance(uint64_t reference) const;
-    
-    
-    
+	int getMinKmerSize(uint64_t reference) const;
+	bool getPreserveCase() const {return parameters.preserveCase;}
+	double getRandomKmerChance(uint64_t reference) const;
     const Reference & getReference(uint64_t index) const {return references.at(index);}
-   
-    std::string & getSketchId(uint64_t index)  {return references.at(index).id;}
-
-
     uint64_t getReferenceCount() const {return references.size();}
-
     void getReferenceHistogram(uint64_t index, std::map<uint32_t, uint64_t> & histogram) const;
-    
-    std::vector<SubSketch> & getReferenceSubSketchList(uint64_t index)  { return references.at(index).subSketch_list; }
-    
     uint64_t getReferenceIndex(std::string id) const;
-    
     int getKmerSize() const {return parameters.kmerSize;}
-    
     double getKmerSpace() const {return kmerSpace;}
-    
     bool getUse64() const {return parameters.use64;}
-    
     uint64_t getWindowSize() const {return parameters.windowSize;}
-    
     bool getNoncanonical() const {return parameters.noncanonical;}
-    
     bool hasHashCounts() const {return references.size() > 0 && references.at(0).counts.size() > 0;}
-    
     bool hasLociByHash(hash_t hash) const {return lociByHash.count(hash);}
-    
-    
     int initFromFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
-    int initFromFingerPrintFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
-
     void initFromReads(const std::vector<std::string> & files, const Parameters & parametersNew);
     uint64_t initParametersFromCapnp(const char * file);
-    uint64_t initParametersFingerPrintsFromCapnp(const char * file);
-
-    
     void setReferenceName(int i, const std::string name) {references[i].name = name;}
     void setReferenceComment(int i, const std::string comment) {references[i].comment = comment;}
 	bool sketchFileBySequence(FILE * file, ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> * threadPool);
 	void useThreadOutput(SketchOutput * output);
     void warnKmerSize(uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount) const;
-    
     bool writeToFile() const;
     int writeToCapnp(const char * file) const;
-
-    int writeToCapnpFingerPrint(const char * file) const;
-
     
 private:
     
     void createIndex();
-
-    void createIndexFingerPrint();
     
-    // Vettore dei riferimenti dello sketch 
     std::vector<Reference> references;
-    // Lista dei sotto sketch che posso usare all'interno del programma 
-    std::vector<SubSketch> subSketchList;
-
-
-    
     robin_hood::unordered_map<std::string, int> referenceIndecesById;
-
-    std::unordered_map<std::string, std::pair<int, int>> subSketchIndecesById; // Indice per i subSketch
-    
     std::vector<std::vector<PositionHash>> positionHashesByReference;
-
     robin_hood::unordered_map<hash_t, std::vector<Locus>> lociByHash;
     
-    
-    
     Parameters parameters;
-
     double kmerSpace;
     std::string file;
-
-
 };
 
 void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void getMinHashPositions(std::vector<Sketch::PositionHash> & loci, char * seq, uint32_t length, const Sketch::Parameters & parameters, int verbosity = 0);
 bool hasSuffix(std::string const & whole, std::string const & suffix);
 Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input);
-Sketch::SketchOutput * loadCapnpFingerPrint(Sketch::SketchInput * input);
-
 void reverseComplement(const char * src, char * dest, int length);
 void setAlphabetFromString(Sketch::Parameters & parameters, const char * characters);
 void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap & hashes);

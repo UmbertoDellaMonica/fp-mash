@@ -1,4 +1,5 @@
 using Cxx = import "/capnp/c++.capnp";
+
 $Cxx.namespace("capnp");
 
 @0xc4c8b1ada05e7704;
@@ -9,28 +10,19 @@ struct MinHash
     {
         struct Reference
         {
-            id @0: Text;
-            sequence @1 : Text;
-            quality @2 : Text;
-            length @3 : UInt32;
-            length64 @8 : UInt64;
-            name @4 : Text;
-            comment @5 : Text;
-            subSketchList @11 : List(SubSketch);
-            hashes32 @6 : List(UInt32);
-            hashes64 @7 : List(UInt64);
-            counts32 @9 : List(UInt32);
-            counts32Sorted @10 : Bool;
+            sequence @0 : Text;
+            quality @1 : Text;
+            length @2 : UInt32;
+            length64 @7 : UInt64;
+            name @3 : Text;
+            comment @4 : Text;
+            hashes32 @5 : List(UInt32);
+            hashes64 @6 : List(UInt64);
+            counts32 @8 : List(UInt32);
+            counts32Sorted @9 : Bool;
         }
         
         references @0 : List(Reference);
-    }
-
-
-	struct SubSketch{
-		id @0 : Text;
-		hashes32 @1 : List(UInt32);
-		hashes64 @2 : List(UInt64);
     }
 
     

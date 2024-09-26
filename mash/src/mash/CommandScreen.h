@@ -9,6 +9,7 @@
 
 #include "Command.h"
 #include "Sketch.h"
+#include "SketchFingerPrint.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -141,10 +142,54 @@ public:
     	
 		MinHashHeap * minHashHeap;
     };
+
+	struct HashFingerPrintInput
+    {
+    	HashFingerPrintInput(robin_hood::unordered_map<uint64_t, std::atomic<uint32_t> > & hashCountsNew, MinHashHeap * minHashHeapNew, char * seqNew, uint64_t lengthNew, const SketchFingerPrint::Parameters & parametersNew, bool transNew)
+    	:
+    	hashCounts(hashCountsNew),
+    	minHashHeap(minHashHeapNew),
+    	seq(seqNew),
+    	length(lengthNew),
+    	parameters(parametersNew),
+    	trans(transNew)
+    	{}
+    	
+    	~HashFingerPrintInput()
+    	{
+    		if ( seq != 0 )
+    		{
+	    		delete [] seq;
+	    	}
+    	}
+    	
+    	std::string fileName;
+    	
+    	char * seq;
+    	uint64_t length;
+    	bool trans;
+    	
+    	SketchFingerPrint::Parameters parameters;
+		robin_hood::unordered_map<uint64_t, std::atomic<uint32_t> > & hashCounts;
+		MinHashHeap * minHashHeap;
+    };
+    
+    struct HashFingerPrintOutput
+    {
+    	HashFingerPrintOutput(MinHashHeap * minHashHeapNew)
+    	:
+    	minHashHeap(minHashHeapNew)
+    	{}
+    	
+		MinHashHeap * minHashHeap;
+    };
+
     
     CommandScreen();
     
     int run() const; // override
+
+	int runFingerPrint() const;
 
 private:
 	
@@ -161,10 +206,20 @@ private:
 
 char aaFromCodon(const char * codon);
 double estimateIdentity(uint64_t common, uint64_t denom, int kmerSize, double kmerSpace);
+
 CommandScreen::HashOutput * hashSequence(CommandScreen::HashInput * input);
+CommandScreen::HashFingerPrintOutput * hashFingerPrintSequence(CommandScreen::HashFingerPrintInput * input);
+
+
 double pValueWithin(uint64_t x, uint64_t setSize, double kmerSpace, uint64_t sketchSize);
 void translate(const char * src, char * dst, uint64_t len);
+
+
 void useThreadOutput(CommandScreen::HashOutput * output, robin_hood::unordered_set<MinHashHeap *> & minHashHeaps);
+void useThreadFingerPrintOutput(CommandScreen::HashFingerPrintOutput * output, robin_hood::unordered_set<MinHashHeap *> & minHashHeaps);
+
+
+
 
 } // namespace mash
 

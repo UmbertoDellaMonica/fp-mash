@@ -62,3 +62,10 @@ void HashList::sort()
         std::sort(hashes32.begin(), hashes32.end());
     }
 }
+
+
+
+
+
+
+

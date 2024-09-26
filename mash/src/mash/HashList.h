@@ -32,11 +32,17 @@ public:
         }
     }
 
+
+
+
 private:
     
     bool use64;
     std::vector<hash32_t> hashes32;
     std::vector<hash64_t> hashes64;
+
+
+    
 };
 
 #endif

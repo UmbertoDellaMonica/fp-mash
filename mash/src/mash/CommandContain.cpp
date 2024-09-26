@@ -6,6 +6,7 @@
 
 #include "CommandContain.h"
 #include "Sketch.h"
+#include "SketchFingerPrint.h"
 #include <iostream>
 #include <zlib.h>
 #include "ThreadPool.h"

@@ -9,6 +9,7 @@
 
 #include "Command.h"
 #include "Sketch.h"
+#include "SketchFingerPrint.h"
 #include <list>
 #include <string>
 #include <vector>
@@ -41,6 +42,8 @@ public:
     CommandTaxScreen();
     
     int run() const; // override
+
+	int runFingerPrint() const;
 
 private:
 	

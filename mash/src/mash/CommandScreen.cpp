@@ -1,5 +1,6 @@
 #include "CommandScreen.h"
 #include "CommandDistance.h" // for pvalue
+#include "SketchFingerPrint.h"
 #include "Sketch.h"
 #include "kseq.h"
 #include <iostream>
@@ -47,6 +48,13 @@ CommandScreen::CommandScreen()
 
 int CommandScreen::run() const
 {
+
+    bool fingerprint = options.at("fingerprint").active;
+
+    if(fingerprint){
+        return runFingerPrint();
+    }
+
     if (arguments.size() < 2 || options.at("help").active)
     {
         print();
@@ -56,13 +64,16 @@ int CommandScreen::run() const
     bool sat = options.at("saturation").active;
     double pValueMax = options.at("pvalue").getArgumentAsNumber();
     double identityMin = options.at("identity").getArgumentAsNumber();
-    bool fingerprint = options.at("fingerprint").active;
 
     vector<string> refArgVector;
     refArgVector.push_back(arguments[0]);
 
     Sketch sketch;
     Sketch::Parameters parameters;
+
+
+    SketchFingerPrint sketchFingerPrint;
+    SketchFingerPrint::Parameters parametersFingerPrint;
 
     sketch.initFromFiles(refArgVector, parameters);
 
@@ -113,17 +124,11 @@ int CommandScreen::run() const
      *  Altrimenti -> se ho dei file normali posso benissimamente utilizzare initFromFiles()
      */
 
-    Sketch querySketch;
+    Sketch querySketch;    
+    
+    querySketch.initFromFiles(queryArgVector, parameters);
 
-    if(fingerprint){
     
-        querySketch.initFromFingerprints(queryArgVector,parameters);
-    
-    }else{
-    
-        querySketch.initFromFiles(queryArgVector, parameters);
-
-    }
     cerr << "Loading " << arguments[1] << " as query..." << endl;
 
     uint64_t setSize = hashTable.size();
@@ -214,7 +219,6 @@ int CommandScreen::run() const
 
     for (int i = 0; i < querySketch.getReferenceCount(); i++)
     {
-            cerr << "Sono qui !..." << endl;
         if (shared[i] != 0 || identityMin < 0.0)
         {
             double identity = estimateIdentity(shared[i], querySketch.getReference(i).hashesSorted.size(), parameters.kmerSize, sketch.getKmerSpace());
@@ -255,6 +259,223 @@ int CommandScreen::run() const
 
     return 0;
 }
+
+
+int CommandScreen::runFingerPrint() const {
+
+    if (arguments.size() < 2 || options.at("help").active)
+    {
+        print();
+        return 0;
+    }
+
+    bool sat = options.at("saturation").active;
+    double pValueMax = options.at("pvalue").getArgumentAsNumber();
+    double identityMin = options.at("identity").getArgumentAsNumber();
+
+    vector<string> refArgVector;
+    refArgVector.push_back(arguments[0]);
+
+    SketchFingerPrint sketchFingerPrint;
+    SketchFingerPrint::Parameters parametersFingerPrint;
+
+    string alphabet;
+    sketchFingerPrint.getAlphabetAsString(alphabet);
+    setAlphabetFingerPrintFromString(parametersFingerPrint, alphabet.c_str());
+
+    parametersFingerPrint.parallelism = options.at("threads").getArgumentAsNumber();
+    parametersFingerPrint.kmerSize = sketchFingerPrint.getKmerSize();
+    parametersFingerPrint.noncanonical = sketchFingerPrint.getNoncanonical();
+    parametersFingerPrint.use64 = sketchFingerPrint.getUse64();
+    parametersFingerPrint.preserveCase = sketchFingerPrint.getPreserveCase();
+    parametersFingerPrint.seed = sketchFingerPrint.getHashSeed();
+    parametersFingerPrint.minHashesPerWindow = sketchFingerPrint.getMinHashesPerWindow();
+
+    HashTable hashTable;
+    robin_hood::unordered_map<uint64_t, std::atomic<uint32_t>> hashCounts;
+    robin_hood::unordered_map<uint64_t, list<uint32_t>> saturationByIndex;
+
+    cerr << "Loading " << arguments[0] << "..." << endl;
+
+    for (int i = 0; i < sketchFingerPrint.getReferenceCount(); i++)
+    {
+        const vector<HashList> &vectorHashesList = sketchFingerPrint.getReference(i).subSketch_list;
+
+        for (int j = 0; j < vectorHashesList.size(); j++)
+        {
+            HashList hashList = vectorHashesList.at(j);
+
+            for(int k = 0 ; k< hashList.size(); k++){ 
+             
+                uint64_t hash = hashList.get64() ? hashList.at(k).hash64 : hashList.at(k).hash32;
+
+                if (hashTable.count(hash) == 0)
+                {
+                    hashCounts[hash] = 0;
+                }
+
+                hashTable[hash].insert(i);
+            }
+        }
+    }
+
+    cerr << "   " << hashTable.size() << " distinct hashes." << endl;
+
+    // Load the query file
+    vector<string> queryArgVector;
+    queryArgVector.push_back(arguments[1]);
+
+    /**
+     * Se utilizzo l'opzione -fp , allora devo stabilire che i file vengono caricati secondo la funzione di initFromFingerprint()
+     * 
+     *  Altrimenti -> se ho dei file normali posso benissimamente utilizzare initFromFiles()
+     */
+
+    SketchFingerPrint queryFingerPrintSketch;
+
+    queryFingerPrintSketch.initFromFingerprints(queryArgVector,parametersFingerPrint);
+
+    cerr << "Loading " << arguments[1] << " as query..." << endl;
+
+    uint64_t setSize = hashTable.size();
+    vector<uint64_t> shared(queryFingerPrintSketch.getReferenceCount(), 0);
+    vector<vector<uint64_t>> depths(queryFingerPrintSketch.getReferenceCount());
+
+    for (int i = 0; i < queryFingerPrintSketch.getReferenceCount(); i++)
+    {
+        const vector<HashList> &vectorQueryHashesList = queryFingerPrintSketch.getReference(i).subSketch_list;
+
+        for (int j = 0; j < vectorQueryHashesList.size(); j++)
+        {
+
+
+            const HashList & hashList = vectorQueryHashesList.at(j);
+
+            for(int k = 0; k< hashList.size(); k++){
+
+            uint64_t queryHash = hashList.get64() ? hashList.at(k).hash64 : hashList.at(k).hash32;
+
+            if (hashTable.count(queryHash))
+            {
+                shared[i]++;
+                depths[i].push_back(hashCounts[queryHash]);
+                 if (sat)
+                 {
+                     saturationByIndex[i].push_back(0);
+                 }
+            }
+            }
+        }
+    }
+
+    if (options.at("winning!").active)
+    {
+        cerr << "Reallocating to winners..." << endl;
+        double *scores = new double[sketchFingerPrint.getReferenceCount()];
+
+        for (int i = 0; i < sketchFingerPrint.getReferenceCount(); i++)
+        {
+            scores[i] = estimateIdentity(shared[i], sketchFingerPrint.getReference(i).subSketch_list.size(), parametersFingerPrint.kmerSize, sketchFingerPrint.getKmerSpace());
+        }
+
+        memset(shared.data(), 0, sizeof(uint64_t) * sketchFingerPrint.getReferenceCount());
+
+        for (int i = 0; i < sketchFingerPrint.getReferenceCount(); i++)
+        {
+            depths[i].clear();
+        }
+
+        for (auto &pair : hashTable)
+        {
+            if (hashCounts.count(pair.first) == 0 || hashCounts[pair.first] < 1)
+            {
+                continue;
+            }
+
+            const auto &indices = pair.second;
+            double maxScore = 0;
+            uint64_t maxLength = 0;
+            uint64_t maxIndex;
+
+            for (auto k = indices.begin(); k != indices.end(); k++)
+            {
+                if (scores[*k] > maxScore)
+                {
+                    maxScore = scores[*k];
+                    maxIndex = *k;
+                    maxLength = sketchFingerPrint.getReference(*k).length;
+                }
+                else if (scores[*k] == maxScore && sketchFingerPrint.getReference(*k).length > maxLength)
+                {
+                    maxIndex = *k;
+                    maxLength = sketchFingerPrint.getReference(*k).length;
+                }
+            }
+
+            shared[maxIndex]++;
+            depths[maxIndex].push_back(hashCounts[pair.first]);
+        }
+
+        delete[] scores;
+    }
+
+    cerr << "Computing coverage medians..." << endl;
+
+    // TODO : La computazione si ferma qui ------- Verificare i prossimi passaggi con la fingerprint 
+
+    for (int i = 0; i < sketchFingerPrint.getReferenceCount(); i++)
+    {
+        sort(depths[i].begin(), depths[i].end());
+    }
+
+    cerr << "Writing output..." << endl;
+
+    for (int i = 0; i < queryFingerPrintSketch.getReferenceCount(); i++)
+    {
+        if (shared[i] != 0 || identityMin < 0.0)
+        {
+            double identity = estimateIdentity(shared[i], queryFingerPrintSketch.getReference(i).subSketch_list.size(), parametersFingerPrint.kmerSize, sketchFingerPrint.getKmerSpace());
+
+            if (identity < identityMin)
+            {
+                continue;
+            }
+
+            double pValue = pValueWithin(shared[i], setSize, sketchFingerPrint.getKmerSpace(), queryFingerPrintSketch.getReference(i).subSketch_list.size());
+
+            if (pValue > pValueMax)
+            {
+                continue;
+            }
+
+            cout << identity << '\t' << shared[i] << '/' << queryFingerPrintSketch.getReference(i).subSketch_list.size() << '\t'
+                 << (shared[i] > 0 ? depths[i].at(shared[i] / 2) : 0) << '\t' << pValue << '\t' << queryFingerPrintSketch.getReference(i).name << '\t' << queryFingerPrintSketch.getReference(i).comment;
+
+             if (sat)
+             {
+                 cout << '\t';
+
+                 for (auto j = saturationByIndex.at(i).begin(); j != saturationByIndex.at(i).end(); j++)
+                 {
+                     if (j != saturationByIndex.at(i).begin())
+                     {
+                         cout << ',';
+                     }
+
+                     cout << *j;
+                 }
+             }
+
+            cout << endl;
+        }
+    }
+
+
+    return 0; 
+}
+
+
+
 
 double estimateIdentity(uint64_t common, uint64_t denom, int kmerSize, double kmerSpace)
 {
@@ -382,6 +603,115 @@ CommandScreen::HashOutput * hashSequence(CommandScreen::HashInput * input)
 
     return output;
 }
+
+
+
+CommandScreen::HashFingerPrintOutput * hashFingerPrintSequence(CommandScreen::HashFingerPrintInput * input)
+{
+    CommandScreen::HashFingerPrintOutput * output = new CommandScreen::HashFingerPrintOutput(input->minHashHeap);
+
+    int l = input->length;
+    bool trans = input->trans;
+
+    bool use64 = input->parameters.use64;
+    uint32_t seed = input->parameters.seed;
+    int kmerSize = input->parameters.kmerSize;
+    bool noncanonical = input->parameters.noncanonical;
+
+    char * seq = input->seq;
+
+    // Converti in maiuscolo
+    for (uint64_t i = 0; i < l; i++)
+    {
+        if (!input->parameters.preserveCase && seq[i] > 96 && seq[i] < 123)
+        {
+            seq[i] -= 32;
+        }
+    }
+
+    char * seqRev;
+
+    if (!noncanonical || trans)
+    {
+        seqRev = new char[l];
+        reverseComplement(seq, seqRev, l);
+    }
+
+    for (int i = 0; i < (trans ? 6 : 1); i++)
+    {
+        bool useRevComp = false;
+        int frame = i % 3;
+        bool rev = i > 2;
+
+        int lenTrans = (l - frame) / 3;
+
+        char * seqTrans;
+
+        if (trans)
+        {
+            seqTrans = new char[lenTrans];
+            translate((rev ? seqRev : seq) + frame, seqTrans, lenTrans);
+        }
+
+        int64_t lastGood = -1;
+        int length = trans ? lenTrans : l;
+
+        for (int j = 0; j < length - kmerSize + 1; j++)
+        {
+            while (lastGood < j + kmerSize - 1 && lastGood < length)
+            {
+                lastGood++;
+
+                if (trans ? (seqTrans[lastGood] == '*') : (!input->parameters.alphabet[seq[lastGood]]))
+                {
+                    j = lastGood + 1;
+                }
+            }
+
+            if (j > length - kmerSize)
+            {
+                break;
+            }
+
+            const char * kmer;
+
+            if (trans)
+            {
+                kmer = seqTrans + j;
+            }
+            else
+            {
+                const char * kmer_fwd = seq + j;
+                const char * kmer_rev = seqRev + length - j - kmerSize;
+                kmer = (noncanonical || memcmp(kmer_fwd, kmer_rev, kmerSize) <= 0) ? kmer_fwd : kmer_rev;
+            }
+
+            hash_u hash = getHash(kmer, kmerSize, seed, use64);
+            uint64_t key = use64 ? hash.hash64 : hash.hash32;
+
+            // Messaggio di debug
+            cerr << "Comparing Hash: " << key << " in hashCounts" << endl;
+
+            if (input->hashCounts.count(key) == 1)
+            {
+                input->hashCounts[key]++;
+            }
+        }
+
+        if (trans)
+        {
+            delete [] seqTrans;
+        }
+    }
+
+    if (!noncanonical || trans)
+    {
+        delete [] seqRev;
+    }
+
+    return output;
+}
+
 
 double pValueWithin(uint64_t x, uint64_t setSize, double kmerSpace, uint64_t sketchSize)
 {
@@ -594,5 +924,12 @@ void useThreadOutput(CommandScreen::HashOutput * output, robin_hood::unordered_s
     minHashHeaps.emplace(output->minHashHeap);
     delete output;
 }
+
+void useThreadFingerPrintOutput(CommandScreen::HashFingerPrintOutput * output, robin_hood::unordered_set<MinHashHeap *> & minHashHeaps)
+{
+    minHashHeaps.emplace(output->minHashHeap);
+    delete output;
+}
+
 
 } // namespace mash

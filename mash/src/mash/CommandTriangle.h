@@ -3,12 +3,12 @@
 
 #include "Command.h"
 #include "CommandDistance.h"
+#include "SketchFingerPrint.h"
 #include "Sketch.h"
 
 namespace mash {
 
-class CommandTriangle : public Command
-{
+class CommandTriangle : public Command{
 public:
     
     struct TriangleInput
@@ -54,22 +54,35 @@ public:
     
     CommandTriangle();
 
-
-    
     int run() const override;
+
+    int runFingerPrint() const;
+
     
 private:
     
     double pValueMax;
+
     bool comment;
+
+
     void writeOutput(TriangleOutput * output, bool comment, bool edge, double & pValuePeakToSet) const;
+
+private:
+
+    bool containsExtensionMSH(const std::vector<std::string>& strVec) const;
+    
+    bool containsExtensionTXT(const std::vector<std::string>& strVec) const;
 
 };
 
     CommandTriangle::TriangleOutput * compare(CommandTriangle::TriangleInput * input);
+    
     void compareFingerprints(CommandDistance::CompareOutput::PairOutput * pair, const Sketch::Reference & ref1, const Sketch::Reference & ref2, uint64_t sketchSize, double maxDistance, double maxPValue);
-    bool containsExtensionMSH(const std::vector<std::string>& strVec) ;
-    bool containsExtensionTXT(const std::vector<std::string>& strVec) ;
+    
+    
+
+
 } // namespace mash
 
 #endif

@@ -1,5 +1,6 @@
 #include "CommandTriangle.h"
 #include "Sketch.h"
+#include "SketchFingerPrint.h"
 #include "sketchParameterSetup.h"
 #include <iostream>
 #include <zlib.h>
@@ -37,6 +38,13 @@ CommandTriangle::CommandTriangle()
 
 int CommandTriangle::run() const
 {
+
+    bool fingerprint = options.at("fingerprint").active; // Aggiunto
+
+    if(fingerprint){
+        return runFingerPrint();
+    }
+
     if (arguments.size() < 1 || options.at("help").active)
     {
         print();
@@ -47,7 +55,6 @@ int CommandTriangle::run() const
     bool list = options.at("list").active;
     bool comment = options.at("comment").active;
     bool edge = options.at("edge").active;
-    bool fingerprint = options.at("fingerprint").active; // Aggiunto
     double pValueMax = options.at("pvalue").getArgumentAsNumber();
     double distanceMax = options.at("distance").getArgumentAsNumber();
     double pValuePeakToSet = 0;
@@ -70,6 +77,7 @@ int CommandTriangle::run() const
     }
 
     Sketch sketch;
+    SketchFingerPrint sketchFingerPrint;
     
     // Vecchie variabili reintegrate
     uint64_t lengthMax;
@@ -92,37 +100,10 @@ int CommandTriangle::run() const
         }
     }
 
-    // TAG = Format File .msh 
+   
+    sketch.initFromFiles(queryFiles, parameters); // Caricamento sequenze genomiche
 
-    /*
-        Se il file ha il formato .msh  : ( Inserisco l'opzione -fp )
-        - Devo utilizzare initFromFiles()
-
-        Se il file ha il formato .txt : ( Inserisco l'opzione -fp )
-        - Posso utilizzare initFromFingerPrint()   
-
-    */
-
-   /**
-    *  FingerPrint Option & Msh
-    */
-   if(fingerprint && containsExtensionMSH(queryFiles)){
-        
-        sketch.initFromFiles(queryFiles,parameters);
-   }
-   /**
-    *  FingerPrint Option & txt
-    */   
-   else if( fingerprint && containsExtensionTXT(queryFiles)){
-        
-        sketch.initFromFingerprints(queryFiles,parameters);
-   }
-    else if (fingerprint) {
-        sketch.initFromFingerprints(queryFiles, parameters); // Caricamento fingerprint
-    } else {
-        sketch.initFromFiles(queryFiles, parameters); // Caricamento sequenze genomiche
-    }
-
+    
     double lengthThreshold = (parameters.warning * sketch.getKmerSpace()) / (1. - parameters.warning);
 
     for (uint64_t i = 0; i < sketch.getReferenceCount(); i++)
@@ -177,7 +158,149 @@ int CommandTriangle::run() const
     return 0;
 }
 
-bool containsExtensionMSH(const std::vector<std::string>& strVec) {
+
+int CommandTriangle::runFingerPrint() const {
+
+    if (arguments.size() < 1 || options.at("help").active)
+    {
+        print();
+        return 0;
+    }
+
+    int threads = options.at("threads").getArgumentAsNumber();
+    bool list = options.at("list").active;
+    bool comment = options.at("comment").active;
+    bool edge = options.at("edge").active;
+    double pValueMax = options.at("pvalue").getArgumentAsNumber();
+    double distanceMax = options.at("distance").getArgumentAsNumber();
+    double pValuePeakToSet = 0;
+
+    if (options.at("pvalue").active || options.at("distance").active)
+    {
+        edge = true;
+    }
+
+    SketchFingerPrint::Parameters parametersFingerPrint;
+    
+    if ( sketchParameterFingerPrintSetup(parametersFingerPrint, *(Command *)this) )
+    {
+    	return 1;
+    }
+
+    if ( arguments.size() == 1 && !list )
+    {
+    	parametersFingerPrint.concatenated = false;
+    }
+
+    SketchFingerPrint sketchFingerPrint;
+    
+    // Vecchie variabili reintegrate
+    uint64_t lengthMax;
+    double randomChance;
+    int kMin;
+    string lengthMaxName;
+    int warningCount = 0;
+    
+    vector<string> queryFiles;
+
+    for (int i = 0; i < arguments.size(); i++)
+    {
+        if (list)
+        {
+            splitFile(arguments[i], queryFiles);
+        }
+        else
+        {
+            queryFiles.push_back(arguments[i]);
+        }
+    }
+
+    // TAG = Format File .msh 
+
+    /*
+        Se il file ha il formato .msh  : ( Inserisco l'opzione -fp )
+        - Devo utilizzare initFromFiles()
+
+        Se il file ha il formato .txt : ( Inserisco l'opzione -fp )
+        - Posso utilizzare initFromFingerPrint()   
+
+    */
+
+   /**
+    *  FingerPrint Option & Msh
+    */
+   if(containsExtensionMSH(queryFiles)){
+        
+        sketchFingerPrint.initFromFingerPrintFiles(queryFiles,parametersFingerPrint);
+   }
+   /**
+    *  FingerPrint Option & txt
+    */   
+   else if(containsExtensionTXT(queryFiles)){
+        
+        sketchFingerPrint.initFromFingerprints(queryFiles,parametersFingerPrint);
+   }
+
+   double lengthThreshold = (parametersFingerPrint.warning * sketchFingerPrint.getKmerSpace()) / (1. - parametersFingerPrint.warning);
+
+    for (uint64_t i = 0; i < sketchFingerPrint.getReferenceCount(); i++)
+    {
+        uint64_t length = sketchFingerPrint.getReference(i).length;
+
+        if (length > lengthThreshold)
+        {
+            if (warningCount == 0 || length > lengthMax)
+            {
+                lengthMax = length;
+                lengthMaxName = sketchFingerPrint.getReference(i).name;
+                randomChance = sketchFingerPrint.getRandomKmerChance(i);
+                kMin = sketchFingerPrint.getMinKmerSize(i);
+            }
+
+            warningCount++;
+        }
+    }
+    if (!edge)
+    {
+        cout << '\t' << sketchFingerPrint.getReferenceCount() << endl;
+        cout << (comment ? sketchFingerPrint.getReference(0).comment : sketchFingerPrint.getReference(0).name) << endl;
+    }
+
+    /**ThreadPool<TriangleInput, TriangleOutput> threadPool(compare, threads);
+
+    for (uint64_t i = 1; i < sketch.getReferenceCount(); i++)
+    {
+        threadPool.runWhenThreadAvailable(new TriangleInput(sketch, i, parameters, distanceMax, pValueMax, fingerprint)); // Passaggio del parametro fingerprint
+        while (threadPool.outputAvailable())
+        {
+            writeOutput(threadPool.popOutputWhenAvailable(), comment, edge, pValuePeakToSet);
+        }
+    }
+
+    while (threadPool.running())
+    {
+        writeOutput(threadPool.popOutputWhenAvailable(), comment, edge, pValuePeakToSet);
+    }
+
+    if (!edge)
+    {
+        cerr << "Max p-value: " << pValuePeakToSet << endl;
+    }
+
+    if (warningCount > 0 && !parameters.reads)
+    {
+        warnKmerFingerPrintSize(parametersFingerPrint, *this, lengthMax, lengthMaxName, randomChance, kMin, warningCount);
+    }**/
+
+    return 0;
+
+}
+
+
+
+
+
+bool CommandTriangle::containsExtensionMSH(const std::vector<std::string>& strVec)const {
     
     bool flag = false;
 
@@ -189,9 +312,7 @@ bool containsExtensionMSH(const std::vector<std::string>& strVec) {
 
 }
 
-
-
-bool containsExtensionTXT(const std::vector<std::string>& strVec){
+bool CommandTriangle::containsExtensionTXT(const std::vector<std::string>& strVec)const {
     bool flag = false;
 
     for (const auto& str : strVec) {
@@ -200,6 +321,9 @@ bool containsExtensionTXT(const std::vector<std::string>& strVec){
 
     return flag;
 }
+
+
+
 
 
 

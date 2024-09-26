@@ -9,6 +9,7 @@
 
 #include "Command.h"
 #include "Sketch.h"
+#include "SketchFingerPrint.h"
 
 namespace mash {
 
@@ -19,7 +20,20 @@ public:
     CommandPaste();
     
     int run() const; // override
+
+    int runFingerPrint() const; 
+
+private:
+
+int checkArguments() const ;
+
+std::string processArguments(std::vector<std::string>& files, bool output, bool list, bool fingerPrint) const;
+
+
+
 };
+
+
 
 
 } // namespace mash

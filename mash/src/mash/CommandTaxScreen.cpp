@@ -6,7 +6,6 @@
 
 #include "CommandTaxScreen.h"
 #include "CommandDistance.h" // for pvalue
-#include "Sketch.h"
 #include "kseq.h"
 #include "taxdb.hpp"
 #include <iostream>
@@ -57,6 +56,14 @@ CommandTaxScreen::CommandTaxScreen()
 
 int CommandTaxScreen::run() const
 {
+    
+    bool isFingerprint = options.at("fingerprint").active;  // Controllo dell'opzione fingerprint
+    if(isFingerprint){
+
+        return runFingerPrint();
+
+    }
+    
     if (arguments.size() < 2 || options.at("help").active)
     {
         print();
@@ -73,7 +80,6 @@ int CommandTaxScreen::run() const
     double identityMin = options.at("identity").getArgumentAsNumber();
     string taxonomyDir = options.at("taxonomy-dir").argument;
     string mappingFileName = options.at("mapping-file").argument;
-    bool isFingerprint = options.at("fingerprint").active;  // Controllo dell'opzione fingerprint
 
     vector<string> refArgVector;
     refArgVector.push_back(arguments[0]);
@@ -81,20 +87,15 @@ int CommandTaxScreen::run() const
     Sketch sketch;
     Sketch::Parameters parameters;
 
-    if (isFingerprint)
-    {
-        // Usa fingerprints se l'opzione è attiva
-        sketch.initFromFingerprints(refArgVector, parameters);
-    }
-    else
-    {
-        // Altrimenti usa le sequenze
-        sketch.initFromFiles(refArgVector, parameters);
-    }
+
+    
+    // Altrimenti usa le sequenze
+    sketch.initFromFiles(refArgVector, parameters);
 
     string alphabet;
     sketch.getAlphabetAsString(alphabet);
     setAlphabetFromString(parameters, alphabet.c_str());
+
 
     parameters.parallelism = options.at("threads").getArgumentAsNumber();
     parameters.kmerSize = sketch.getKmerSize();
@@ -446,6 +447,398 @@ int CommandTaxScreen::run() const
 }
 
 
+
+int CommandTaxScreen::runFingerPrint() const {
+
+
+     if (arguments.size() < 2 || options.at("help").active)
+    {
+        print();
+        return 0;
+    }
+
+    if (!hasSuffix(arguments[0], suffixSketch))
+    {
+        cerr << "ERROR: " << arguments[0] << " does not look like a sketch (.msh)" << endl;
+        exit(1);
+    }
+
+    double pValueMax = options.at("pvalue").getArgumentAsNumber();
+    double identityMin = options.at("identity").getArgumentAsNumber();
+    string taxonomyDir = options.at("taxonomy-dir").argument;
+    string mappingFileName = options.at("mapping-file").argument;
+
+    vector<string> refArgVector;
+    refArgVector.push_back(arguments[0]);
+
+    SketchFingerPrint sketchFingerprint;
+    SketchFingerPrint::Parameters parametersFingerprint;
+
+    // Usa fingerprints se l'opzione è attiva
+    sketchFingerprint.initFromFingerprints(refArgVector, parametersFingerprint);
+    
+    string alphabet;
+
+    sketchFingerprint.getAlphabetAsString(alphabet);
+    setAlphabetFingerPrintFromString(parametersFingerprint,alphabet.c_str());
+
+    parametersFingerprint.parallelism = options.at("threads").getArgumentAsNumber();
+    parametersFingerprint.kmerSize = sketchFingerprint.getKmerSize();
+    parametersFingerprint.noncanonical = sketchFingerprint.getNoncanonical();
+    parametersFingerprint.use64 = sketchFingerprint.getUse64();
+    parametersFingerprint.preserveCase = sketchFingerprint.getPreserveCase();
+    parametersFingerprint.seed = sketchFingerprint.getHashSeed();
+    parametersFingerprint.minHashesPerWindow = sketchFingerprint.getMinHashesPerWindow();
+
+
+        HashTable hashTable;
+    robin_hood::unordered_map<uint64_t, std::atomic<uint32_t>> hashCounts;
+    unordered_map<uint64_t, TaxID> hashTaxIDs;
+    unordered_map<uint64_t, list<uint32_t>> saturationByIndex;
+
+    string namesDumpFile = taxonomyDir + "/names.dmp";
+    string nodesDumpFile = taxonomyDir + "/nodes.dmp";
+    if (!file_exists(namesDumpFile) || !file_exists(nodesDumpFile))
+    {
+        cerr << "Could not find a file names.dmp or nodes.dmp in directory " << taxonomyDir << "\n"
+             << " To download the required taxonomy files into the current directory, use the following commands:\n"
+             << "   wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz\n"
+             << "   tar xvvf taxdump.tar.gz\n"
+             << endl;
+        exit(1);
+    }
+    cerr << "Loading taxonomy files ..." << endl;
+    TaxDB taxdb(namesDumpFile, nodesDumpFile);
+
+    cerr << "Reading mapping file ..." << endl;
+    vector<TaxID> referenceTaxIDs(sketchFingerprint.getReferenceCount(), 0);
+    if (mappingFileName != "")
+    {
+        std::ifstream mappingFile(mappingFileName);
+        if (!mappingFile.is_open())
+            throw std::runtime_error("unable to open mapping file");
+
+        string referenceID;
+        TaxID taxID;
+        unordered_map<string, TaxID> refTaxMap;
+        while (mappingFile >> taxID)
+        {
+            mappingFile.ignore(1);
+            getline(mappingFile, referenceID, '\n');
+            refTaxMap.emplace(referenceID, taxID);
+        }
+        for (int i = 0; i < sketchFingerprint.getReferenceCount(); i++)
+        {
+            auto const it = refTaxMap.find(sketchFingerprint.getReference(i).name);
+            if (it == refTaxMap.end())
+            {
+                // No warning? Could still be mapped based on comment
+                //cerr << "Could not find taxID for reference " << sketch.getReference(i).name << endl;
+            }
+            else
+            {
+                referenceTaxIDs[i] = it->second;
+            }
+        }
+    }
+    for (int i = 0; i < sketchFingerprint.getReferenceCount(); i++)
+    {
+        string word;
+        TaxID taxID = referenceTaxIDs[i];
+        if (taxID == 0)
+        {
+            stringstream comment_stream(sketchFingerprint.getReference(i).comment);
+            while (comment_stream >> word)
+            {
+                if (word == "taxid")
+                {
+                    comment_stream >> taxID;
+                }
+            }
+        }
+        if (taxID == 0)
+        {
+            cerr << "Could not find taxID for reference " << sketchFingerprint.getReference(i).name << " in comment field or mapping file!" << endl;
+        }
+        else
+        {
+            referenceTaxIDs[i] = taxID;
+        }
+    }
+
+    cerr << "Loading " << arguments[0] << "..." << endl;
+
+    for (int i = 0; i < sketchFingerprint.getReferenceCount(); i++)
+    {
+        // TODO: Make another for 
+        const vector<HashList> &hashesList = sketchFingerprint.getReference(i).subSketch_list;
+
+        for(int k = 0 ; k< hashesList.size(); k++){
+
+
+            const HashList &hashes = hashesList.at(k);
+
+            for (int j = 0; j < hashes.size(); j++)
+            {
+                uint64_t hash = hashes.get64() ? hashes.at(j).hash64 : hashes.at(j).hash32;
+
+                if (hashTable.count(hash) == 0)
+                {
+                    hashCounts[hash] = 0;
+                }
+
+                hashTable[hash].insert(i);
+            }
+        }
+    }
+
+    cerr << "   " << hashTable.size() << " distinct hashes." << endl;
+
+    robin_hood::unordered_set<MinHashHeap *> minHashHeaps;
+
+    bool trans = (alphabet == alphabetProtein);
+
+    int queryCount = arguments.size() - 1;
+    cerr << (trans ? "Translating from " : "Streaming from ");
+
+    if (queryCount == 1)
+    {
+        cerr << arguments[1];
+    }
+    else
+    {
+        cerr << queryCount << " inputs";
+    }
+
+    cerr << "..." << endl;
+
+    int kmerSize = parametersFingerprint.kmerSize;
+    int minCov = 1;
+
+    ThreadPool<CommandScreen::HashFingerPrintInput, CommandScreen::HashFingerPrintOutput> threadPool(hashFingerPrintSequence, parametersFingerprint.parallelism);
+
+    gzFile fps[queryCount];
+    list<kseq_t *> kseqs;
+
+    for (int f = 1; f < arguments.size(); f++)
+    {
+        if (arguments[f] == "-")
+        {
+            if (f > 1)
+            {
+                cerr << "ERROR: '-' for stdin must be first query" << endl;
+                exit(1);
+            }
+
+            fps[f - 1] = gzdopen(fileno(stdin), "r");
+        }
+        else
+        {
+            fps[f - 1] = gzopen(arguments[f].c_str(), "r");
+
+            if (fps[f - 1] == 0)
+            {
+                cerr << "ERROR: could not open " << arguments[f] << endl;
+                exit(1);
+            }
+        }
+
+        kseqs.push_back(kseq_init(fps[f - 1]));
+    }
+
+    int l;
+    uint64_t count = 0;
+    uint64_t chunkSize = 1 << 20;
+    string input;
+    input.reserve(chunkSize);
+    list<kseq_t *>::iterator it = kseqs.begin();
+
+    while (true)
+    {
+        if (kseqs.begin() == kseqs.end())
+        {
+            l = 0;
+        }
+        else
+        {
+            l = kseq_read(*it);
+
+            if (l < -1)
+            {
+                break;
+            }
+
+            if (l == -1)
+            {
+                kseq_destroy(*it);
+                it = kseqs.erase(it);
+                if (it == kseqs.end())
+                {
+                    it = kseqs.begin();
+                }
+            }
+        }
+
+        if (input.length() + (l >= kmerSize ? l + 1 : 0) > chunkSize || kseqs.begin() == kseqs.end())
+        {
+            char *seqCopy = new char[input.length()];
+            memcpy(seqCopy, input.c_str(), input.length());
+
+            if (minHashHeaps.begin() == minHashHeaps.end())
+            {
+                minHashHeaps.emplace(new MinHashHeap(sketchFingerprint.getUse64(), sketchFingerprint.getMinHashesPerWindow()));
+            }
+
+            threadPool.runWhenThreadAvailable(new CommandScreen::HashFingerPrintInput(hashCounts, *minHashHeaps.begin(), seqCopy, input.length(), parametersFingerprint, trans));
+
+            input = "";
+
+            minHashHeaps.erase(minHashHeaps.begin());
+
+            while (threadPool.outputAvailable())
+            {
+                useThreadFingerPrintOutput(threadPool.popOutputWhenAvailable(), minHashHeaps);
+            }
+        }
+
+        if (kseqs.begin() == kseqs.end())
+        {
+            break;
+        }
+
+        count++;
+
+        if (l >= kmerSize)
+        {
+            input.append(1, '*');
+            input.append((*it)->seq.s, l);
+        }
+
+        it++;
+
+        if (it == kseqs.end())
+        {
+            it = kseqs.begin();
+        }
+    }
+
+    if (l != -1)
+    {
+        cerr << "\nERROR: reading inputs" << endl;
+        exit(1);
+    }
+
+    while (threadPool.running())
+    {
+        useThreadFingerPrintOutput(threadPool.popOutputWhenAvailable(), minHashHeaps);
+    }
+
+    for (int i = 0; i < queryCount; i++)
+    {
+        gzclose(fps[i]);
+    }
+
+    MinHashHeap minHashHeap(sketchFingerprint.getUse64(), sketchFingerprint.getMinHashesPerWindow());
+
+    for (robin_hood::unordered_set<MinHashHeap *>::const_iterator i = minHashHeaps.begin(); i != minHashHeaps.end(); i++)
+    {
+        HashList hashList(parametersFingerprint.use64);
+
+        (*i)->toHashList(hashList);
+
+        for (int i = 0; i < hashList.size(); i++)
+        {
+            minHashHeap.tryInsert(hashList.at(i));
+        }
+
+        delete *i;
+    }
+
+    if (count == 0)
+    {
+        cerr << "\nERROR: Did not find sequence records in inputs" << endl;
+
+        exit(1);
+    }
+
+    uint64_t setSize = minHashHeap.estimateSetSize();
+    cerr << "   Estimated distinct" << (trans ? " (translated)" : "") << " k-mers in pool: " << setSize << endl;
+
+    if (setSize == 0)
+    {
+        cerr << "WARNING: no valid k-mers in input." << endl;
+    }
+
+    cerr << "Assigning LCA taxIDs to hashes ..." << endl;
+
+    uint64_t *shared = new uint64_t[sketchFingerprint.getReferenceCount()];
+    vector<uint64_t> *depths = new vector<uint64_t>[sketchFingerprint.getReferenceCount()];
+    memset(shared, 0, sizeof(uint64_t) * sketchFingerprint.getReferenceCount());
+    unordered_map<TaxID, TaxCounts> counts;
+    unordered_set<TaxID> allTaxIDs;
+
+    for (robin_hood::unordered_map<uint64_t, std::atomic<uint32_t>>::const_iterator i = hashCounts.begin(); i != hashCounts.end(); i++)
+    {
+        const robin_hood::unordered_set<uint64_t> &indeces = hashTable.at(i->first);
+
+        TaxID taxID = 0;
+        for (robin_hood::unordered_set<uint64_t>::const_iterator k = indeces.begin(); k != indeces.end(); k++)
+        {
+            taxID = taxdb.getLowestCommonAncestor(referenceTaxIDs[*k], taxID);
+            shared[*k]++;
+            depths[*k].push_back(i->second);
+        }
+        hashTaxIDs[i->first] = taxID;
+        counts[taxID].taxHashCount += 1;
+        if (i->second >= minCov)
+        {
+            counts[taxID].taxCount += 1;
+            allTaxIDs.insert(taxID);
+        }
+    }
+
+    uint64_t totalCount = 0;
+    uint64_t totalHashCount = 0;
+    for (unordered_map<TaxID, TaxCounts>::iterator it = counts.begin(); it != counts.end(); ++it)
+    {
+        uint64_t hashCount = it->second.taxHashCount;
+        totalHashCount += hashCount;
+
+        uint64_t count = it->second.taxCount;
+        totalCount += count;
+
+        TaxID taxID = it->first;
+        TaxEntry const *taxon = taxdb.getEntry(taxID);
+        while (taxon != NULL)
+        {
+            counts[taxon->taxID].cladeCount += count;
+            counts[taxon->taxID].cladeHashCount += hashCount;
+            if (taxon->parent != NULL)
+            {
+                vector<TaxID> &children = counts[taxon->parent->taxID].children;
+                auto pc_it = lower_bound(children.begin(), children.end(), taxon->taxID);
+                if (pc_it == children.end() || *pc_it != taxon->taxID)
+                {
+                    children.insert(pc_it, taxon->taxID);
+                }
+                taxon = taxon->parent;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    cerr << "Writing output..." << endl;
+
+    taxdb.writeReport(stdout, counts, totalCount, totalHashCount);
+
+    delete[] shared;
+
+    return 0;
+
+}
 
 
 } // namespace mash

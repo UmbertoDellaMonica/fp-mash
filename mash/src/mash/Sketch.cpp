@@ -4,6 +4,7 @@
 //
 // See the LICENSE.txt file included with this software for license information.
 
+
 #include "Sketch.h"
 #include <unistd.h>
 #include <zlib.h>
@@ -21,23 +22,13 @@
 #include <sys/stat.h>
 #include <capnp/message.h>
 #include <capnp/serialize.h>
-#include <capnp/message.h>
-#include <capnp/serialize-packed.h>
 #include <sys/mman.h>
 #include <math.h>
 #include <list>
 #include <string.h>
-#include <fstream>
-#include <sstream>
-#include <numeric>
-#include "hash.h"
-
-
-
 
 #define SET_BINARY_MODE(file)
 #define CHUNK 16384
-#define LIMIT_READ_FINGERPRINT 1000000
 KSEQ_INIT(gzFile, gzread)
 
 using namespace std;
@@ -54,328 +45,6 @@ void Sketch::getAlphabetAsString(string & alphabet) const
 		}
 	}
 }
-
-
-void Sketch::initFromFingerprints(const vector<string> &files, const Parameters &parametersNew)
-{
-    parameters = parametersNew;
-    
-    int counterLine = 0;
-    robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
-                                                     // Vettore per memorizzare le reference finali
-    string lastID = ""; // Memorizza l'ultimo ID letto
-
-    cout << "Initializing from fingerprints..." << endl;
-
-    for (const string &file : files)
-    {
-        cout << "Processing file: " << file << endl;
-
-        ifstream inputFile(file);
-
-        if (!inputFile)
-        {
-            cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
-            exit(1);
-        }
-
-        string line;
-        Reference* currentReference = nullptr; // Puntatore alla reference corrente
-
-        while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
-        {
-            //cout << "Reading line: " << counterLine + 1 << endl;
-            counterLine++;
-
-            vector<uint64_t> fingerprint;
-
-            istringstream ss(line);
-            
-            uint64_t number;
-            string id;
-            ss >> id;
-
-            //cout << "Processing ID: " << id << endl;
-
-            while (ss >> number)
-            {
-                fingerprint.push_back(number);
-                if (ss.peek() == ' ') ss.ignore();
-            }
-
-            // Verifica se l'ID è diverso dall'ultimo ID
-            if (id != lastID)
-            {
-                // Nuovo ID, crea una nuova reference
-                if (currentReference != nullptr)
-                {
-                    //cout << "Adding reference for ID: " << lastID << endl;
-                    // Aggiungi la reference al vettore
-                    references.push_back(*currentReference);
-                    delete currentReference;
-                }
-
-                currentReference = new Reference;
-                currentReference->id = id; // Assegna l'ID estratto alla struttura Reference
-                currentReference->length = fingerprint.size(); // Numero di elementi nel fingerprint
-                currentReference->name = ""+id;
-                currentReference->comment = "FingerPrint : " + currentReference->id;
-                currentReference->hashesSorted.setUse64(parameters.use64);
-
-                // Aggiungi l'ID al set di ID processati
-                processedIDs.insert(id);
-
-                // Aggiorna l'ultimo ID
-                lastID = id;
-
-                //cout << "Created new reference for ID: " << id << endl;
-            }
-
-            // Calcola Hash in base64 
-            hash_u hash = getHashFingerPrint(fingerprint, fingerprint.size() * sizeof(uint64_t), parameters.seed, parameters.use64);
-            currentReference->hashesSorted.add(hash); // Usa il metodo add
-            currentReference->length = currentReference->length+fingerprint.size();
-
-            //cout << "Added hash for ID: " << id << endl;
-        }
-
-        if (currentReference != nullptr)
-        {
-            //cout << "Adding last reference for file: " << file << endl;
-            // Aggiungi l'ultima reference processata al vettore
-            references.push_back(*currentReference);
-            delete currentReference;
-        }
-    }
-
-    //cout << "Creating index..." << endl;
-    createIndex();
-    cout << "Initialization complete." << endl;
-}
-
-
-
-void Sketch::initFromFingerprints3(const vector<string> &files, const Parameters &parametersNew)
-{
-    parameters = parametersNew;
-    int counterLine = 0;
-    robin_hood::unordered_set<string> processedIDs;
-    string lastID = "";
-    cout << "Initializing from fingerprints..." << endl;
-
-    for (const string &file : files)
-    {
-        cout << "Processing file: " << file << endl;
-        ifstream inputFile(file);
-        if (!inputFile)
-        {
-            cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
-            exit(1);
-        }
-
-        string line;
-        Reference* currentReference = nullptr;
-        SubSketch* currentSubSketch = nullptr;
-        while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
-        {
-            counterLine++;
-            vector<uint64_t> fingerprint;
-            istringstream ss(line);
-            uint64_t number;
-            string id;
-            ss >> id;
-
-            while (ss >> number)
-            {
-                fingerprint.push_back(number);
-                if (ss.peek() == ' ') ss.ignore();
-            }
-
-            // Se l'ID è nuovo, crea una nuova reference
-            if (id != lastID)
-            {
-                if (currentReference != nullptr)
-                {
-                    if (currentSubSketch != nullptr)
-                    {
-                        currentReference->subSketch_list.push_back(*currentSubSketch);
-                        delete currentSubSketch;
-                        currentSubSketch = nullptr;
-                    }
-                    references.push_back(*currentReference);
-                    delete currentReference;
-                }
-
-                currentReference = new Reference;
-                currentReference->id = id;
-                currentReference->name = id;
-                currentReference->comment = "FingerPrint : " + currentReference->id;
-                lastID = id;
-            }
-
-            // Crea un nuovo SubSketch
-            currentSubSketch = new SubSketch;
-            string sub_id = to_string(counterLine);
-            currentSubSketch->ID = id + "_" + sub_id;
-            currentSubSketch->hashesSorted.setUse64(parameters.use64);
-
-            // Calcola hash e inserisci solo valori diversi da 0
-            for (uint64_t num : fingerprint)
-            {
-                hash_u hash = getHashNumber(&num, sizeof(uint64_t), parameters.seed, parameters.use64);
-                if (hash.hash64 != 0) // Aggiungi solo hash non nulli
-                {
-                    currentSubSketch->hashesSorted.add(hash);
-                }
-            }
-
-            currentReference->subSketch_list.push_back(*currentSubSketch);
-            currentReference->length += fingerprint.size();
-            delete currentSubSketch;
-            currentSubSketch = nullptr;
-        }
-
-        if (currentReference != nullptr)
-        {
-            references.push_back(*currentReference);
-            delete currentReference;
-        }
-    }
-
-    createIndexFingerPrint();
-    cout << "Initialization complete." << endl;
-}
-
-
-
-void Sketch::initFromFingerprints2(const vector<string> &files, const Parameters &parametersNew)
-{
-    parameters = parametersNew;
-    
-    int counterLine = 0;
-    unordered_map<string, int> idCounter;
-    robin_hood::unordered_set<string> processedIDs; // Usare unordered_set per ID unici
-                                                     // Vettore per memorizzare le reference finali
-    string lastID = ""; // Memorizza l'ultimo ID letto
-
-
-    vector<SubSketch> subsketch_list; // Variabile locale per memorizzare i subsketch
-
-    cout << "Initializing from fingerprints..." << endl;
-
-    for (const string &file : files)
-    {
-        cout << "Processing file: " << file << endl;
-
-        ifstream inputFile(file);
-
-        if (!inputFile)
-        {
-            cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
-            exit(1);
-        }
-
-        string line;
-        Reference* currentReference = nullptr; // Puntatore alla reference corrente
-
-        while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
-        {
-            //cout << "Reading line: " << counterLine + 1 << endl;
-            counterLine++;
-
-            vector<uint64_t> fingerprint;
-
-            istringstream ss(line);
-            
-            uint64_t number;
-            string id;
-            ss >> id;
-
-            //cout << "Processing ID: " << id << endl;
-            if (idCounter.find(id) == idCounter.end()) {
-                    idCounter[id] = 1;  // Imposta contatore a 1 per il nuovo ID
-                }
-
-                // Crea un nuovo sub-sketch per l'ID con numero incrementale
-            SubSketch subSketch;
-            subSketch.ID = to_string(idCounter[id]) + "_" + id;  // Usa il contatore corrente
-            idCounter[id]++;  // Incrementa il contatore per l'ID
-            cout << subSketch.ID << endl;
-
-
-            while (ss >> number)
-            {
-                fingerprint.push_back(number);
-                if (ss.peek() == ' ') ss.ignore();
-            }
-
-        ///**PARTE ORIGIANEL CHE NON SO SE SERVE ANCORA QUINDI METTO IN COMMENTO ***////
-            /*
-            
-            
-            Verifica se l'ID è diverso dall'ultimo ID
-            if (id != lastID)
-            {
-                // Nuovo ID, crea una nuova reference
-                if (currentReference != nullptr)
-                {
-                    //cout << "Adding reference for ID: " << lastID << endl;
-                    // Aggiungi la reference al vettore
-                    references.push_back(*currentReference);
-                    delete currentReference;
-                }
-
-                currentReference = new Reference;
-                currentReference->id = id; // Assegna l'ID estratto alla struttura Reference
-                currentReference->length = fingerprint.size(); // Numero di elementi nel fingerprint
-                currentReference->name = ""+id;
-                currentReference->comment = "FingerPrint : " + currentReference->id;
-                currentReference->hashesSorted.setUse64(parameters.use64);
-
-                // Aggiungi l'ID al set di ID processati
-                processedIDs.insert(id);
-
-                // Aggiorna l'ultimo ID
-                lastID = id;
-
-                //cout << "Created new reference for ID: " << id << endl;
-            }
-
-             
-            hash_u hash = getHashFingerPrint(fingerprint, fingerprint.size() * sizeof(uint64_t), parameters.seed, parameters.use64);
-            currentReference->hashesSorted.add(hash); 
-            currentReference->length = currentReference->length+fingerprint.size(); 
-            
-        }
-        if (currentReference != nullptr)
-        {
-          references.push_back(*currentReference);
-            delete currentReference; 
-        }
-        */
-
-
-         //++++APPLICAZIONE DEL SUBSKETCH++++///
-            for (uint64_t num : fingerprint)
-                {
-                    vector<uint64_t> numVector;
-                    numVector.push_back(num); // Usa push_back per aggiungere num
-                    hash_u hash = getHashFingerPrint(numVector, sizeof(uint64_t), parameters.seed, parameters.use64);
-                    subSketch.hashesSorted.add(hash);  // Aggiungi l'hash al subsketch
-                }
-
-                // Aggiungi il subsketch alla lista
-                subsketch_list.push_back(subSketch);
-    }
-
-    //cout << "Creating index..." << endl;
-    createIndex();
-    cout << "Initialization complete." << endl;
-}
-}
-
-
-
 
 const vector<Sketch::Locus> & Sketch::getLociByHash(Sketch::hash_t hash) const
 {
@@ -433,43 +102,6 @@ void Sketch::initFromReads(const vector<string> & files, const Parameters & para
 	
     createIndex();
 }
-
-
-/**
- * Dettagli e Funzionamento della Funzione
-Inizializzazione dei Parametri:
-
-La funzione inizia assegnando i nuovi parametri ai parametri della classe Sketch.
-Creazione del Thread Pool:
-
-Un pool di thread viene creato per eseguire il lavoro in parallelo, migliorando le prestazioni durante il caricamento e la costruzione degli sketch.
-Iterazione sui File:
-
-La funzione itera attraverso ogni file fornito nella lista files.
-Verifica dei File di Sketch:
-
-Controlla se il file ha il suffisso giusto per essere considerato uno sketch.
-Se il file è uno sketch, vengono eseguiti diversi controlli sui parametri del file per assicurarsi che siano compatibili con i parametri attuali.
-Inizializzazione e Controllo dei Parametri del File:
-
-Inizializza lo sketch per testare i parametri.
-Se i parametri del file non corrispondono ai parametri attuali (come l'alfabeto, il seed, la dimensione del k-mer, ecc.), il file viene saltato con un messaggio di avvertimento.
-Gestione dei File di Input:
-
-Se il file non è uno sketch, viene letto e processato come input di sequenza.
-Se l'opzione concatenated è attiva, viene gestito di conseguenza.
-Viene utilizzato un thread pool per gestire il caricamento parallelo e il processamento dei file.
-Elaborazione dell'Output del Thread:
-
-Mentre il pool di thread è in esecuzione, la funzione raccoglie e utilizza l'output dai thread per costruire gli sketch.
-Creazione dell'Indice:
-
-Alla fine, viene creato un indice per gli sketch.
-
-La funzione initFromFiles è progettata per gestire in modo robusto l'inizializzazione degli sketch da una varietà di file, assicurando che i parametri siano coerenti e compatibili. 
-
-Utilizza un approccio multithread per migliorare le prestazioni durante il caricamento e la costruzione degli sketch. Se un file non rispetta i parametri attesi, viene saltato con un messaggio di avvertimento, garantendo che solo i file compatibili vengano inclusi nel processo di sketching.
- */
 
 int Sketch::initFromFiles(const vector<string> & files, const Parameters & parametersNew, int verbosity, bool enforceParameters, bool contain)
 {
@@ -621,161 +253,6 @@ int Sketch::initFromFiles(const vector<string> & files, const Parameters & param
     return 0;
 }
 
-
-
-int Sketch::initFromFingerPrintFiles(const vector<string> & files, const Parameters & parametersNew, int verbosity, bool enforceParameters, bool contain)
-{
-    parameters = parametersNew;
-    
-	ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> threadPool(0, parameters.parallelism);
-	
-    for ( int i = 0; i < files.size(); i++ )
-    {
-        bool isSketch = hasSuffix(files[i], parameters.windowed ? suffixSketchWindowed : suffixSketch);
-        
-        if ( isSketch )
-        {
-			// init header to check params
-			//
-			Sketch sketchTest;
-			sketchTest.initParametersFingerPrintsFromCapnp(files[i].c_str());
-			
-        	if ( i == 0 && ! enforceParameters )
-        	{
-        		initParametersFingerPrintsFromCapnp(files[i].c_str());
-        	}
-        	
-            string alphabet;
-            string alphabetTest;
-            
-            getAlphabetAsString(alphabet);
-            sketchTest.getAlphabetAsString(alphabetTest);
-            
-            if ( alphabet != alphabetTest )
-            {
-            	cerr << "\nWARNING: The sketch file " << files[i] << " has different alphabet (" << alphabetTest << ") than the current alphabet (" << alphabet << "). This file will be skipped." << endl << endl;
-            	continue;
-            }
-			
-            if ( sketchTest.getHashSeed() != parameters.seed )
-            {
-				cerr << "\nWARNING: The sketch " << files[i] << " has a seed size (" << sketchTest.getHashSeed() << ") that does not match the current seed (" << parameters.seed << "). This file will be skipped." << endl << endl;
-				continue;
-            }
-			if ( sketchTest.getKmerSize() != parameters.kmerSize )
-			{
-				cerr << "\nWARNING: The sketch " << files[i] << " has a kmer size (" << sketchTest.getKmerSize() << ") that does not match the current kmer size (" << parameters.kmerSize << "). This file will be skipped." << endl << endl;
-				continue;
-			}
-			
-            if ( ! contain && sketchTest.getMinHashesPerWindow() < parameters.minHashesPerWindow )
-            {
-                cerr << "\nWARNING: The sketch file " << files[i] << " has a target sketch size (" << sketchTest.getMinHashesPerWindow() << ") that is smaller than the current sketch size (" << parameters.minHashesPerWindow << "). This file will be skipped." << endl << endl;
-                continue;
-            }
-            
-			if ( sketchTest.getNoncanonical() != parameters.noncanonical )
-			{
-				cerr << "\nWARNING: The sketch file " << files[i] << " is " << (sketchTest.getNoncanonical() ? "noncanonical" : "canonical") << ", which is incompatible with the current setting. This file will be skipped." << endl << endl;
-				continue;
-			}
-            
-            if ( sketchTest.getMinHashesPerWindow() > parameters.minHashesPerWindow )
-            {
-                cerr << "\nWARNING: The sketch file " << files[i] << " has a target sketch size (" << sketchTest.getMinHashesPerWindow() << ") that is larger than the current sketch size (" << parameters.minHashesPerWindow << "). Its sketches will be reduced." << endl << endl;
-            }
-            
-            // init fully
-            //
-            vector<string> file;
-            file.push_back(files[i]);
-			threadPool.runWhenThreadAvailable(new SketchInput(file, 0, 0, "", "", parameters), loadCapnpFingerPrint);
-        }
-        else
-		{
-			FILE * inStream;
-		
-			if ( files[i] == "-" )
-			{
-				if ( verbosity > 0 )
-				{
-					cerr << "Sketching from stdin..." << endl;
-				}
-			
-				inStream = stdin;
-			}
-			else
-			{
-				if ( verbosity > 0 )
-				{
-					cerr << "Sketching " << files[i] << "..." << endl;
-				}
-			
-				inStream = fopen(files[i].c_str(), "r");
-			
-				if ( inStream == NULL )
-				{
-					cerr << "ERROR: could not open " << files[i] << " for reading." << endl;
-					exit(1);
-				}
-			}
-		
-			if ( parameters.concatenated )
-			{
-				if ( files[i] != "-" )
-				{
-					fclose(inStream);
-				}
-				
-				vector<string> file;
-				file.push_back(files[i]);
-				threadPool.runWhenThreadAvailable(new SketchInput(file, 0, 0, "", "", parameters), sketchFile);
-			}
-			else
-			{
-				if ( ! sketchFileBySequence(inStream, &threadPool) )
-				{
-					cerr << "\nERROR: reading " << files[i] << "." << endl;
-					exit(1);
-				}
-			
-				fclose(inStream);
-			}
-		}
-			
-		while ( threadPool.outputAvailable() )
-		{
-			useThreadOutput(threadPool.popOutputWhenAvailable());
-		}
-    }
-    
-	while ( threadPool.running() )
-	{
-		useThreadOutput(threadPool.popOutputWhenAvailable());
-	}
-	
-    /*
-    printf("\nCombined hash table:\n\n");
-    
-    for ( LociByHash_umap::iterator i = lociByHash.begin(); i != lociByHash.end(); i++ )
-    {
-        printf("Hash %u:\n", i->first);
-        
-        for ( int j = 0; j < i->second.size(); j++ )
-        {
-            printf("   Seq: %d\tPos: %d\n", i->second.at(j).sequence, i->second.at(j).position);
-        }
-    }
-    */
-    
-    createIndex();
-    
-    return 0;
-}
-
-
-
-
 uint64_t Sketch::initParametersFromCapnp(const char * file)
 {
     int fd = open(file, O_RDONLY);
@@ -821,16 +298,7 @@ uint64_t Sketch::initParametersFromCapnp(const char * file)
     parameters.noncanonical = reader.getNoncanonical();
    	parameters.preserveCase = reader.getPreserveCase();
 
-    capnp::MinHash::ReferenceList::Reader referenceListReader;
-    if(reader.getReferenceList().getReferences().size() >0 ){
-        
-        
-        referenceListReader = reader.getReferenceList();
-    }else{
-
-     referenceListReader = reader.getReferenceListOld();
-    }
-
+    capnp::MinHash::ReferenceList::Reader referenceListReader = reader.getReferenceList().getReferences().size() ? reader.getReferenceList() : reader.getReferenceListOld();
     capnp::List<capnp::MinHash::ReferenceList::Reference>::Reader referencesReader = referenceListReader.getReferences();
     uint64_t referenceCount = referencesReader.size();
     
@@ -855,101 +323,6 @@ uint64_t Sketch::initParametersFromCapnp(const char * file)
 	
 	return referenceCount;
 }
-
-
-
-uint64_t Sketch::initParametersFingerPrintsFromCapnp(const char * file)
-{
-    int fd = open(file, O_RDONLY);
-    
-    if ( fd < 0 )
-    {
-        cerr << "ERROR: could not open \"" << file << "\" for reading." << endl;
-        exit(1);
-    }
-    
-    struct stat fileInfo;
-    
-    if ( stat(file, &fileInfo) == -1 )
-    {
-        cerr << "ERROR: could not get file stats for \"" << file << "\"." << endl;
-        exit(1);
-    }
-    
-    void * data = mmap(NULL, fileInfo.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    
-    if (data == MAP_FAILED)
-    {
-        uint64_t fileSize = fileInfo.st_size;
-        std::cerr << "Error: could not memory-map file " << file << " of size " << fileSize;
-        std::cerr << std::endl;
-        exit(1);
-    }
-
-    capnp::ReaderOptions readerOptions;
-    
-    readerOptions.traversalLimitInWords = 1000000000000;
-    readerOptions.nestingLimit = 1000000;
-    
-    //capnp::StreamFdMessageReader * message = new capnp::StreamFdMessageReader(fd, readerOptions);
-    capnp::FlatArrayMessageReader * message = new capnp::FlatArrayMessageReader(kj::ArrayPtr<const capnp::word>(reinterpret_cast<const capnp::word *>(data), fileInfo.st_size / sizeof(capnp::word)), readerOptions);
-    capnp::MinHash::Reader reader = message->getRoot<capnp::MinHash>();
-    
-    parameters.kmerSize = reader.getKmerSize();
-    parameters.error = reader.getError();
-    parameters.minHashesPerWindow = reader.getMinHashesPerWindow();
-    parameters.windowSize = reader.getWindowSize();
-    parameters.concatenated = reader.getConcatenated();
-    parameters.noncanonical = reader.getNoncanonical();
-   	parameters.preserveCase = reader.getPreserveCase();
-
-    capnp::MinHash::ReferenceList::Reader referenceListReader;
-    if(reader.getReferenceList().getReferences().size() >0 ){
-        
-        
-        referenceListReader = reader.getReferenceList();
-        cout<<"Sono qui La size delle references era >0 !"<<endl;
-
-    
-    }else{
-
-     referenceListReader = reader.getReferenceListOld();
-        cout<<"Sono qui La size delle references era <0 !"<<endl;
-    }
-    
-    capnp::List<capnp::MinHash::ReferenceList::Reference>::Reader referencesReader = referenceListReader.getReferences();
-    uint64_t referenceCount = referencesReader.size();
-    
-    cout<<" Sono nell'InitFromFingerPrints() "<<endl;
-
-    parameters.counts = referencesReader[0].hasCounts32();
-   	parameters.seed = reader.getHashSeed();
-    
-    if ( reader.hasAlphabet() )
-    {
-        cout<< "Sono nel reader Alphabet !"<<endl;
-    	setAlphabetFromString(parameters, reader.getAlphabet().cStr());
-    }
-    else
-    {
-        cout<< "Sono nel reader con non Alphabet !"<<endl;
-    	setAlphabetFromString(parameters, alphabetNucleotide);
-    }
-	close(fd);
-	
-	try
-	{
-		delete message;
-	}
-	catch (exception e) {}
-	
-	return referenceCount;
-}
-
-
-
-
-
 
 bool Sketch::sketchFileBySequence(FILE * file, ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> * threadPool)
 {
@@ -1009,14 +382,9 @@ bool Sketch::writeToFile() const
     return writeToCapnp(file.c_str()) == 0;
 }
 
-
-
-
-
 int Sketch::writeToCapnp(const char * file) const
 {
-    cout << "Opening file: " << file << endl;
-    int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC , 0644);
+    int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC, 0644);
     
     if ( fd < 0 )
     {
@@ -1024,19 +392,15 @@ int Sketch::writeToCapnp(const char * file) const
         exit(1);
     }
     
-    cout << "Initializing Cap'n Proto message builder" << endl;
     capnp::MallocMessageBuilder message;
     capnp::MinHash::Builder builder = message.initRoot<capnp::MinHash>();
     
-    cout << "Initializing ReferenceList builder" << endl;
     capnp::MinHash::ReferenceList::Builder referenceListBuilder = (parameters.seed == 42 ? builder.initReferenceListOld() : builder.initReferenceList());
     
-    cout << "Initializing references builder with size: " << references.size() << endl;
     capnp::List<capnp::MinHash::ReferenceList::Reference>::Builder referencesBuilder = referenceListBuilder.initReferences(references.size());
     
     for ( uint64_t i = 0; i < references.size(); i++ )
     {
-        cout << "Processing reference " << i << ": " << references[i].name << endl;
         capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
         
         referenceBuilder.setName(references[i].name);
@@ -1045,12 +409,10 @@ int Sketch::writeToCapnp(const char * file) const
         
         if ( references[i].hashesSorted.size() != 0 )
         {
-            cout << "Reference " << i << " has " << references[i].hashesSorted.size() << " hashes" << endl;
             const HashList & hashes = references[i].hashesSorted;
             
             if ( parameters.use64 )
             {
-                cout << "Using 64-bit hashes" << endl;
                 capnp::List<uint64_t>::Builder hashes64Builder = referenceBuilder.initHashes64(hashes.size());
             
                 for ( uint64_t j = 0; j != hashes.size(); j++ )
@@ -1060,7 +422,6 @@ int Sketch::writeToCapnp(const char * file) const
             }
             else
             {
-                cout << "Using 32-bit hashes" << endl;
                 capnp::List<uint32_t>::Builder hashes32Builder = referenceBuilder.initHashes32(hashes.size());
             
                 for ( uint64_t j = 0; j != hashes.size(); j++ )
@@ -1071,30 +432,27 @@ int Sketch::writeToCapnp(const char * file) const
             
             if ( references[i].counts.size() > 0 && parameters.counts )
             {
-                cout << "Reference " << i << " has counts" << endl;
-                const vector<uint32_t> & counts = references[i].counts;
-                
+            	const vector<uint32_t> & counts = references[i].counts;
+            	
                 capnp::List<uint32_t>::Builder countsBuilder = referenceBuilder.initCounts32(counts.size());
                 
-                for ( uint64_t j = 0; j != counts.size(); j++ )
-                {
-                    countsBuilder.set(j, counts.at(j));
-                }
-                
-                referenceBuilder.setCounts32Sorted(true);
-            }
+				for ( uint64_t j = 0; j != counts.size(); j++ )
+				{
+					countsBuilder.set(j, counts.at(j));
+				}
+				
+				referenceBuilder.setCounts32Sorted(true);
+			}
         }
     }
     
     int locusCount = 0;
     
-    cout << "Calculating total locus count" << endl;
     for ( int i = 0; i < positionHashesByReference.size(); i++ )
     {
         locusCount += positionHashesByReference.at(i).size();
     }
     
-    cout << "Total locus count: " << locusCount << endl;
     capnp::MinHash::LocusList::Builder locusListBuilder = builder.initLocusList();
     capnp::List<capnp::MinHash::LocusList::Locus>::Builder lociBuilder = locusListBuilder.initLoci(locusCount);
     
@@ -1104,7 +462,6 @@ int Sketch::writeToCapnp(const char * file) const
     {
         for ( int j = 0; j < positionHashesByReference.at(i).size(); j++ )
         {
-            cout << "Processing locus " << locusIndex << " for reference " << i << endl;
             capnp::MinHash::LocusList::Locus::Builder locusBuilder = lociBuilder[locusIndex];
             locusIndex++;
             
@@ -1114,7 +471,6 @@ int Sketch::writeToCapnp(const char * file) const
         }
     }
     
-    cout << "Setting general parameters" << endl;
     builder.setKmerSize(parameters.kmerSize);
     builder.setHashSeed(parameters.seed);
     builder.setError(parameters.error);
@@ -1128,172 +484,20 @@ int Sketch::writeToCapnp(const char * file) const
     getAlphabetAsString(alphabet);
     builder.setAlphabet(alphabet);
     
-    cout << "Writing message to file" << endl;
     writeMessageToFd(fd, message);
     close(fd);
     
-    cout << "Finished writing to file" << endl;
-    
     return 0;
 }
-
-
-int Sketch::writeToCapnpFingerPrint(const char * file) const
-{
-    cout << "Opening file: " << file << endl;
-    int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC , 0644);
-
-    cout<< "FILE Name : "<< file<< endl;
-
-
-    if (fd < 0)
-    {
-        cerr << "ERROR: could not open " << file << " for writing.\n";
-        exit(1);
-    }
-
-    cout << "Initializing Cap'n Proto message builder" << endl;
-    capnp::MallocMessageBuilder message;
-    capnp::MinHash::Builder builder = message.initRoot<capnp::MinHash>();
-
-    cout << "Initializing ReferenceList builder" << endl;
-    capnp::MinHash::ReferenceList::Builder referenceListBuilder = (parameters.seed == 42 ? builder.initReferenceListOld() : builder.initReferenceList());
-
-    cout << "Initializing references builder with size: " << references.size() << endl;
-    capnp::List<capnp::MinHash::ReferenceList::Reference>::Builder referencesBuilder = referenceListBuilder.initReferences(references.size());
-
-    for (uint64_t i = 0; i < references.size(); i++)
-    {   
-        
-        cout << "Processing reference " << i << ": " << references[i].name << endl;
-        capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
-        referenceBuilder.setId(references[i].id);   
-        referenceBuilder.setName(references[i].name);
-        referenceBuilder.setComment(references[i].comment);
-        referenceBuilder.setLength64(references[i].length);
-        
-        cout << "Reference " << i << " has " << references[i].subSketch_list.size() << " sub-sketches" << endl;
-
-        if (references[i].subSketch_list.size() != 0)
-        {
-            // Initialize the SubSketch list in the Cap'n Proto message
-            capnp::List<capnp::MinHash::SubSketch>::Builder subSketchListBuilder = referenceBuilder.initSubSketchList(references[i].subSketch_list.size());
-
-            for (uint64_t j = 0; j < references[i].subSketch_list.size(); j++)
-            {
-                const SubSketch & subsketch = references[i].subSketch_list.at(j);
-
-                capnp::MinHash::SubSketch::Builder subSketchBuilder = subSketchListBuilder[j];
-
-                subSketchBuilder.setId(subsketch.ID);
-
-                cout << "ID SubSketch in Capnp: " << subsketch.ID << endl;
-                
-                const HashList & hashes = subsketch.hashesSorted;
-                
-                cout << "Sono qua, dammi la size dell'Hash: " << hashes.size() << endl;
-
-                if (hashes.size() > 0)
-                {
-                    //cout << "Initializing 64-bit hashes builder for SubSketch" << endl;
-                    capnp::List<uint64_t>::Builder hashes64Builder = subSketchBuilder.initHashes64(hashes.size());
-                    //cout << "Ho superato questa barriera!" << endl;
-                    for (uint64_t k = 0; k != hashes.size(); k++)
-                    {
-                        hashes64Builder.set(k, hashes.at(k).hash64);
-                        //cout << "Hash utilizzato del SubSketch: " << hashes.at(k).hash64 << endl;
-                    }
-                }
-                else
-                {
-                    //cout << "No hashes found for SubSketch " << subsketch.ID << endl;
-                }
-            }
-        }
-
-        if (references[i].counts.size() > 0 && parameters.counts)
-        {
-            //cout << "Reference " << i << " has counts" << endl;
-            const vector<uint32_t> & counts = references[i].counts;
-
-            capnp::List<uint32_t>::Builder countsBuilder = referenceBuilder.initCounts32(counts.size());
-
-            for (uint64_t j = 0; j != counts.size(); j++)
-            {
-                countsBuilder.set(j, counts.at(j));
-            }
-
-            referenceBuilder.setCounts32Sorted(true);
-        }
-    }
-
-    // Remove or comment out the LocusList related code
-    /*
-    int locusCount = 0;
-
-    cout << "Calculating total locus count" << endl;
-    for (int i = 0; i < positionHashesByReference.size(); i++)
-    {
-        locusCount += positionHashesByReference.at(i).size();
-    }
-
-    cout << "Total locus count: " << locusCount << endl;
-    capnp::MinHash::LocusList::Builder locusListBuilder = builder.initLocusList();
-    capnp::List<capnp::MinHash::LocusList::Locus>::Builder lociBuilder = locusListBuilder.initLoci(locusCount);
-
-    int locusIndex = 0;
-
-    for (int i = 0; i < positionHashesByReference.size(); i++)
-    {
-        for (int j = 0; j < positionHashesByReference.at(i).size(); j++)
-        {
-            cout << "Processing locus " << locusIndex << " for reference " << i << endl;
-            capnp::MinHash::LocusList::Locus::Builder locusBuilder = lociBuilder[locusIndex];
-            locusIndex++;
-
-            locusBuilder.setSequence(i);
-            locusBuilder.setPosition(positionHashesByReference.at(i).at(j).position);
-            locusBuilder.setHash64(positionHashesByReference.at(i).at(j).hash);
-        }
-    }
-    */
-
-    cout << "Setting general parameters" << endl;
-    builder.setKmerSize(parameters.kmerSize);
-    builder.setHashSeed(parameters.seed);
-    builder.setError(parameters.error);
-    builder.setMinHashesPerWindow(parameters.minHashesPerWindow);
-    builder.setWindowSize(parameters.windowSize);
-    builder.setConcatenated(parameters.concatenated);
-    builder.setNoncanonical(parameters.noncanonical);
-    builder.setPreserveCase(parameters.preserveCase);
-
-    string alphabet;
-    getAlphabetAsString(alphabet);
-    builder.setAlphabet(alphabet);
-
-    cout << "Writing message to file" << endl;
-    capnp::writeMessageToFd(fd, message);
-    close(fd);
-
-    cout << "Finished writing to file" << endl;
-
-    return 0;
-}
-
 
 
 void Sketch::createIndex()
 {
-
-
     for ( int i = 0; i < references.size(); i++ )
     {
-        referenceIndecesById[references[i].id] = i;
+        referenceIndecesById[references[i].name] = i;
     }
     
-
-
     for ( int i = 0; i < positionHashesByReference.size(); i++ )
     {
         for ( int j = 0; j < positionHashesByReference.at(i).size(); j++ )
@@ -1306,65 +510,6 @@ void Sketch::createIndex()
     
     kmerSpace = pow(parameters.alphabetSize, parameters.kmerSize);
 }
-
-
-
-void Sketch::createIndexFingerPrint()
-{
-
-    if (references.size() == 0)
-    {
-        cerr << "ERROR: references is empty." << endl;
-        return;
-    }
-
-    // Popola l'indice delle referenze basato su ID
-    for (int i = 0; i < references.size(); i++)
-    {
-        if (references[i].id.empty())
-        {
-            cerr << "ERROR: references[" << i << "].id is empty." << endl;
-            return;
-        }
-
-        referenceIndecesById[references[i].id] = i;
-
-        // Popola l'indice per i subSketch
-        for (int j = 0; j < references[i].subSketch_list.size(); j++)
-        {
-            const SubSketch & subsketch = references[i].subSketch_list.at(j);
-
-            if (subsketch.ID.empty())
-            {
-                cerr << "ERROR: references[" << i << "].subSketch_list[" << j << "].ID is empty." << endl;
-                return;
-            }
-
-            subSketchIndecesById[subsketch.ID] = std::make_pair(i, j);
-        }
-    }
-
-    // Controlla che alphabetSize e kmerSize siano validi
-    if (parameters.alphabetSize <= 0 || parameters.kmerSize <= 0)
-    {
-        cerr << "ERROR: alphabetSize and kmerSize must be greater than 0." << endl;
-        return;
-    }
-
-    // Calcola lo spazio dei k-mer
-    kmerSpace = pow(parameters.alphabetSize, parameters.kmerSize);
-    cout << "kmerSpace: " << kmerSpace << endl;
-
-    cout << "Fine della funzione createIndexFingerPrint" << endl;
-}
-
-
-
-
-
-
-
-
 
 void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
@@ -1797,7 +942,7 @@ Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input)
         capnp::MinHash::ReferenceList::Reference::Reader referenceReader = referencesReader[i];
         
         Sketch::Reference & reference = references[i];
-        reference.id = referenceReader.getId();
+        
         reference.name = referenceReader.getName();
         reference.comment = referenceReader.getComment();
         
@@ -1865,16 +1010,16 @@ Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input)
         reference.countsSorted = referenceReader.getCounts32Sorted();
     }
     
-    //capnp::MinHash::LocusList::Reader locusListReader = reader.getLocusList();
-    //capnp::List<capnp::MinHash::LocusList::Locus>::Reader lociReader = locusListReader.getLoci();
+    capnp::MinHash::LocusList::Reader locusListReader = reader.getLocusList();
+    capnp::List<capnp::MinHash::LocusList::Locus>::Reader lociReader = locusListReader.getLoci();
     
     output->positionHashesByReference.resize(references.size());
     
-    /*for ( uint64_t i = 0; i < lociReader.size(); i++ )
+    for ( uint64_t i = 0; i < lociReader.size(); i++ )
     {
-        //capnp::MinHash::LocusList::Locus::Reader locusReader = lociReader[i];
+        capnp::MinHash::LocusList::Locus::Reader locusReader = lociReader[i];
         //cout << locusReader.getHash64() << '\t' << locusReader.getSequence() << '\t' << locusReader.getPosition() << endl;
-        //output->positionHashesByReference[locusReader.getSequence()].push_back(Sketch::PositionHash(locusReader.getPosition(), locusReader.getHash64()));
+        output->positionHashesByReference[locusReader.getSequence()].push_back(Sketch::PositionHash(locusReader.getPosition(), locusReader.getHash64()));
     }
     
     /*
@@ -1922,142 +1067,6 @@ Sketch::SketchOutput * loadCapnp(Sketch::SketchInput * input)
     
     return output;
 }
-
-
-Sketch::SketchOutput * loadCapnpFingerPrint(Sketch::SketchInput * input)
-{
-	const char * file = input->fileNames[0].c_str();
-    int fd = open(file, O_RDONLY);
-    
-    struct stat fileInfo;
-    
-    if ( stat(file, &fileInfo) == -1 )
-    {
-        return 0;
-    }
-    
-	Sketch::SketchOutput * output = new Sketch::SketchOutput();
-	vector<Sketch::Reference> & references = output->references;
-	
-    void * data = mmap(NULL, fileInfo.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    
-    capnp::ReaderOptions readerOptions;
-    
-    readerOptions.traversalLimitInWords = 1000000000000;
-    readerOptions.nestingLimit = 1000000;
-    
-    capnp::FlatArrayMessageReader * message = new capnp::FlatArrayMessageReader(kj::ArrayPtr<const capnp::word>(reinterpret_cast<const capnp::word *>(data), fileInfo.st_size / sizeof(capnp::word)), readerOptions);
-    capnp::MinHash::Reader reader = message->getRoot<capnp::MinHash>();
-    
-    capnp::MinHash::ReferenceList::Reader referenceListReader = reader.getReferenceList().getReferences().size() ? reader.getReferenceList() : reader.getReferenceListOld();
-    
-    capnp::List<capnp::MinHash::ReferenceList::Reference>::Reader referencesReader = referenceListReader.getReferences();
-    
-    references.resize(referencesReader.size());
-    
-    for ( uint64_t i = 0; i < referencesReader.size(); i++ )
-    {
-        capnp::MinHash::ReferenceList::Reference::Reader referenceReader = referencesReader[i];
-        
-        Sketch::Reference & reference = references[i];
-
-        reference.id = referenceReader.getId();
-        reference.name = referenceReader.getName();
-        reference.comment = referenceReader.getComment();
-
-        if ( referenceReader.getLength64() )
-        {
-        	reference.length = referenceReader.getLength64();
-        }
-        else
-        {
-	        reference.length = referenceReader.getLength();
-	    }
-        
-        reference.hashesSorted.setUse64(input->parameters.use64);
-        uint64_t hashCount;
-        
-        // Verifico che i miei subsketch hanno una size >0 
-        if(referenceReader.getSubSketchList().size()!=0){
-
-
-            // Devo effettuare la resize dello sketch 
-            reference.subSketch_list.resize(referenceReader.getSubSketchList().size());
-
-            // Devo prendere la lista dei subsketch 
-            capnp::List<capnp::MinHash::SubSketch>::Reader subSketchListReader = referenceReader.getSubSketchList();
-
-            for(uint64_t j = 0; j < subSketchListReader.size(); j++){
-                
-                capnp::MinHash::SubSketch::Reader subSketchReader = subSketchListReader[j];
-
-                // Crea una nuova istanza di Sketch::SubSketch
-                Sketch::SubSketch subSketch;
-
-                subSketch.ID = subSketchReader.getId();
-
-                if ( subSketchReader.getHashes64().size()>0 ){
-
-                    
-                    capnp::List<uint64_t>::Reader hashesReader = subSketchReader.getHashes64();
-
-
-                    subSketch.hashesSorted.clear();
-                    
-                    subSketch.hashesSorted.resize(subSketchReader.getHashes64().size());
-                
-                    hashCount = hashesReader.size();
-
-                    
-                    if ( hashCount > input->parameters.minHashesPerWindow )
-                    {
-                        hashCount = input->parameters.minHashesPerWindow;
-                    }
-                    
-                
-                    for ( uint64_t j = 0; j < hashCount; j++ )
-                    {
-                        subSketch.hashesSorted.push_back64(hashesReader[j]);
-                    }
-                    
-                }
-                else{
-                    
-                    capnp::List<uint32_t>::Reader hashesReader = subSketchReader.getHashes32();
-                    
-                    subSketch.hashesSorted.clear();
-
-                    subSketch.hashesSorted.resize(subSketchReader.getHashes32().size());
-
-                    hashCount = hashesReader.size();
-                    
-                    if ( hashCount > input->parameters.minHashesPerWindow )
-                    {
-                        hashCount = input->parameters.minHashesPerWindow;
-                    }
-                    
-                
-                    for ( uint64_t j = 0; j < hashCount; j++ )
-                    {
-                        subSketch.hashesSorted.push_back32(hashesReader[j]);
-                    }
-
-                }
-
-
-                reference.subSketch_list.push_back(subSketch);
-            }
-        }
-    }
-    
-    munmap(data, fileInfo.st_size);
-    close(fd);
-    delete message;
-    
-    return output;
-}
-
-
 
 
 /* Array from 0..25 of DNA complement of A..Z */

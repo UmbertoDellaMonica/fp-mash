@@ -9,11 +9,18 @@
 
 #include "Command.h"
 #include "Sketch.h"
+#include "SketchFingerPrint.h"
 
 namespace mash {
 
 int sketchParameterSetup(Sketch::Parameters & parameters, const Command & command);
+
+int sketchParameterFingerPrintSetup(SketchFingerPrint::Parameters & parameters, const Command & command);
+
 void warnKmerSize(const Sketch::Parameters & parameters, const Command & command, uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount);
+
+void warnKmerFingerPrintSize(const SketchFingerPrint::Parameters & parameters, const Command & command, uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount);
+
 
 } // namespace mash
 
