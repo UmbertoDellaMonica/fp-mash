@@ -153,7 +153,6 @@ void SketchFingerPrint::initFromFingerprintsWithSingleHash(const vector<string> 
 }
 
 
-
 void SketchFingerPrint::initFromFingerprints(const vector<string> &files, const Parameters &parametersNew)
 {
 
@@ -236,8 +235,6 @@ void SketchFingerPrint::initFromFingerprints(const vector<string> &files, const 
     createIndexFingerPrint();
     cout << "Initialization complete." << endl;
 }
-
-
 
 
 int SketchFingerPrint::getMinKmerSize(uint64_t reference) const
