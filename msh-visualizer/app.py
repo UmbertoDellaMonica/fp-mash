@@ -1,5 +1,5 @@
 import capnp
-import MinHash_capnp  # Assicurati che il nome del file sia corretto
+import MinHashFingerPrint_capnp  # Assicurati che il nome del file sia corretto
 
 def print_sketch(sketch):
     print("=== MinHash Parameters ===")
@@ -16,8 +16,7 @@ def print_sketch(sketch):
 
     print("=== Reference List ===")
     list_reference_old = sketch.referenceListOld
-    print(f"List of Reference : {list_reference_old}")
-
+    print(f"List of Old Reference: {list_reference_old}")
 
     for ref in sketch.referenceList.references:
         print(f"Reference ID: {ref.id}")
@@ -29,33 +28,24 @@ def print_sketch(sketch):
         print(f"Comment: {ref.comment}")
         print(f"Counts32 Sorted: {ref.counts32Sorted}")
 
-        if ref.hashes32:
-            print("Hashes32:")
-            for hash32 in ref.hashes32:
-                print(f"  {hash32}")
-
-        if ref.hashes64:
-            print("Hashes64:")
-            for hash64 in ref.hashes64:
-                print(f"  {hash64}")
+        if ref.counts32:
+            print("Counts32:")
+            for count in ref.counts32:
+                print(f"  {count}")
 
         print("SubSketches:")
         for subSketch in ref.subSketchList:
-            print(f"  SubSketch ID: {subSketch.id}")
-            if subSketch.hashes32:
+            print(f"  SubSketch:")
+            if subSketch.hashList32:
                 print("  Hashes32:")
-                for hash32 in subSketch.hashes32:
+                for hash32 in subSketch.hashList32:
                     print(f"    {hash32}")
-            if subSketch.hashes64:
+            if subSketch.hashList64:
                 print("  Hashes64:")
-                for hash64 in subSketch.hashes64:
+                for hash64 in subSketch.hashList64:
                     print(f"    {hash64}")
 
         print()
-
-    print("=== Locus List ===")
-    for locus in sketch.locusList.loci:
-        print(f"Locus Sequence: {locus.sequence}, Position: {locus.position}, Hash32: {locus.hash32}, Hash64: {locus.hash64}")
 
 if __name__ == "__main__":
     import sys
@@ -65,5 +55,5 @@ if __name__ == "__main__":
 
     filename = sys.argv[1]
     with open(filename, 'rb') as f:
-        sketch = MinHash_capnp.MinHash.read(f)
+        sketch = MinHashFingerPrint_capnp.MinHashFingerPrint.read(f)
         print_sketch(sketch)
