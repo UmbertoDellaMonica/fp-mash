@@ -221,8 +221,9 @@ void SketchFingerPrint::initFromFingerprints(const vector<string> &files, const 
                     hashListSubSketch.add(hash);
                 }
             }
+
             currentReference->subSketch_list.push_back(hashListSubSketch);
-            currentReference->length += fingerprint.size();
+            currentReference->length += 1; 
         }
 
         if (currentReference != nullptr)
@@ -517,10 +518,6 @@ uint64_t SketchFingerPrint::initParametersFingerPrintsFromCapnp(const char * fil
 }
 
 
-
-
-
-
 bool SketchFingerPrint::sketchFileBySequence(FILE * file, ThreadPool<SketchFingerPrint::SketchInput, SketchFingerPrint::SketchOutput> * threadPool)
 {
 	gzFile fp = gzdopen(fileno(file), "r");
@@ -568,145 +565,12 @@ bool SketchFingerPrint::sketchFileBySequence(FILE * file, ThreadPool<SketchFinge
 }
 
 
-
-
 void SketchFingerPrint::useThreadOutput(SketchOutput * output)
 {
 	references.insert(references.end(), output->references.begin(), output->references.end());
 	//positionHashesByReference.insert(positionHashesByReference.end(), output->positionHashesByReference.begin(), output->positionHashesByReference.end());
 	delete output;
 }
-
-
-
-/*
-int Sketch::writeToCapnp(const char * file) const
-{
-    cout << "Opening file: " << file << endl;
-    int fd = open(file, O_CREAT | O_WRONLY | O_TRUNC , 0644);
-    
-    if ( fd < 0 )
-    {
-        cerr << "ERROR: could not open " << file << " for writing.\n";
-        exit(1);
-    }
-    
-    cout << "Initializing Cap'n Proto message builder" << endl;
-    capnp::MallocMessageBuilder message;
-    capnp::MinHash::Builder builder = message.initRoot<capnp::MinHash>();
-    
-    cout << "Initializing ReferenceList builder" << endl;
-    capnp::MinHash::ReferenceList::Builder referenceListBuilder = (parameters.seed == 42 ? builder.initReferenceListOld() : builder.initReferenceList());
-    
-    cout << "Initializing references builder with size: " << references.size() << endl;
-    capnp::List<capnp::MinHash::ReferenceList::Reference>::Builder referencesBuilder = referenceListBuilder.initReferences(references.size());
-    
-    for ( uint64_t i = 0; i < references.size(); i++ )
-    {
-        cout << "Processing reference " << i << ": " << references[i].name << endl;
-        capnp::MinHash::ReferenceList::Reference::Builder referenceBuilder = referencesBuilder[i];
-        
-        referenceBuilder.setName(references[i].name);
-        referenceBuilder.setComment(references[i].comment);
-        referenceBuilder.setLength64(references[i].length);
-        
-        if ( references[i].hashesSorted.size() != 0 )
-        {
-            cout << "Reference " << i << " has " << references[i].hashesSorted.size() << " hashes" << endl;
-            const HashList & hashes = references[i].hashesSorted;
-            
-            if ( parameters.use64 )
-            {
-                cout << "Using 64-bit hashes" << endl;
-                capnp::List<uint64_t>::Builder hashes64Builder = referenceBuilder.initHashes64(hashes.size());
-            
-                for ( uint64_t j = 0; j != hashes.size(); j++ )
-                {
-                    hashes64Builder.set(j, hashes.at(j).hash64);
-                }
-            }
-            else
-            {
-                cout << "Using 32-bit hashes" << endl;
-                capnp::List<uint32_t>::Builder hashes32Builder = referenceBuilder.initHashes32(hashes.size());
-            
-                for ( uint64_t j = 0; j != hashes.size(); j++ )
-                {
-                    hashes32Builder.set(j, hashes.at(j).hash32);
-                }
-            }
-            
-            if ( references[i].counts.size() > 0 && parameters.counts )
-            {
-                cout << "Reference " << i << " has counts" << endl;
-                const vector<uint32_t> & counts = references[i].counts;
-                
-                capnp::List<uint32_t>::Builder countsBuilder = referenceBuilder.initCounts32(counts.size());
-                
-                for ( uint64_t j = 0; j != counts.size(); j++ )
-                {
-                    countsBuilder.set(j, counts.at(j));
-                }
-                
-                referenceBuilder.setCounts32Sorted(true);
-            }
-        }
-    }
-    
-    int locusCount = 0;
-    
-    cout << "Calculating total locus count" << endl;
-    for ( int i = 0; i < positionHashesByReference.size(); i++ )
-    {
-        locusCount += positionHashesByReference.at(i).size();
-    }
-    
-    cout << "Total locus count: " << locusCount << endl;
-    capnp::MinHash::LocusList::Builder locusListBuilder = builder.initLocusList();
-    capnp::List<capnp::MinHash::LocusList::Locus>::Builder lociBuilder = locusListBuilder.initLoci(locusCount);
-    
-    int locusIndex = 0;
-    
-    for ( int i = 0; i < positionHashesByReference.size(); i++ )
-    {
-        for ( int j = 0; j < positionHashesByReference.at(i).size(); j++ )
-        {
-            cout << "Processing locus " << locusIndex << " for reference " << i << endl;
-            capnp::MinHash::LocusList::Locus::Builder locusBuilder = lociBuilder[locusIndex];
-            locusIndex++;
-            
-            locusBuilder.setSequence(i);
-            locusBuilder.setPosition(positionHashesByReference.at(i).at(j).position);
-            locusBuilder.setHash64(positionHashesByReference.at(i).at(j).hash);
-        }
-    }
-    
-    cout << "Setting general parameters" << endl;
-    builder.setKmerSize(parameters.kmerSize);
-    builder.setHashSeed(parameters.seed);
-    builder.setError(parameters.error);
-    builder.setMinHashesPerWindow(parameters.minHashesPerWindow);
-    builder.setWindowSize(parameters.windowSize);
-    builder.setConcatenated(parameters.concatenated);
-    builder.setNoncanonical(parameters.noncanonical);
-    builder.setPreserveCase(parameters.preserveCase);
-    
-    string alphabet;
-    getAlphabetAsString(alphabet);
-    builder.setAlphabet(alphabet);
-    
-    cout << "Writing message to file" << endl;
-    writeMessageToFd(fd, message);
-    close(fd);
-    
-    cout << "Finished writing to file" << endl;
-    
-    return 0;
-}
-*/
-
-
-
 
 
 int SketchFingerPrint::writeToCapnpFingerPrint(const char * file) const {

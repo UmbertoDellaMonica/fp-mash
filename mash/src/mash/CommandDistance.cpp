@@ -385,7 +385,7 @@ int CommandDistance::runFingerPrint() const{
     {
         for ( uint64_t i = 0; i < sketchFingerPrintRef.getReferenceCount(); i++ )
         {
-            uint64_t length = sketchFingerPrintRef.getReference(i).length;
+            uint64_t length = sketchFingerPrintRef.getReference(i).subSketch_list.size();
         
             if ( length > lengthThreshold )
             {
