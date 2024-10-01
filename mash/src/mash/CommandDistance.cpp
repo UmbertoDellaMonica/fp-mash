@@ -763,48 +763,51 @@ void CommandDistance::writeFingerPrintOutput(CompareFingerPrintOutput * output, 
     uint64_t i = output->indexQuery;
     uint64_t j = output->indexRef;
     
-    for ( uint64_t k = 0; k < output->pairCount && i < output->sketchQuery.getReferenceCount(); k++ )
+    for (uint64_t k = 0; k < output->pairCount && i < output->sketchQuery.getReferenceCount(); k++)
     {
         const CompareFingerPrintOutput::PairOutput * pair = &output->pairs[k];
         
-        if ( table && j == 0 )
+        if (table && j == 0)
         {
             cout << output->sketchQuery.getReference(i).name;
         }
         
-        if ( table )
+        if (table)
         {
             cout << '\t';
     
-            if ( pair->pass )
+            if (pair->pass)
             {
-                cout << pair->distance;
+                cout << (pair->distance * 100) << '%';  // Visualizzazione della distance in percentuale
             }
         }
-        else if ( pair->pass )
+        else if (pair->pass)
         {
             cout << output->sketchRef.getReference(j).name;
             
-            if ( comment )
+            if (comment)
             {
                 cout << ':' << output->sketchRef.getReference(j).comment;
             }
             
             cout << '\t' << output->sketchQuery.getReference(i).name;
             
-            if ( comment )
+            if (comment)
             {
                 cout << ':' << output->sketchQuery.getReference(i).comment;
             }
             
-            cout << '\t' << (double) pair->distance << '\t' << (double) pair->pValue << '\t' << pair->numer << '/' << pair->denom << endl;
+            cout << '\t' 
+                 << (pair->distance * 100) << '%' << '\t' // Visualizzazione della distance in percentuale
+                 << (pair->pValue * 100) << '%' << '\t' // Visualizzazione del pValue in percentuale
+                 << pair->numer << '/' << pair->denom << endl;
         }
     
         j++;
         
-        if ( j == output->sketchRef.getReferenceCount() )
+        if (j == output->sketchRef.getReferenceCount())
         {
-            if ( table )
+            if (table)
             {
                 cout << endl;
             }
@@ -816,6 +819,7 @@ void CommandDistance::writeFingerPrintOutput(CompareFingerPrintOutput * output, 
     
     delete output;
 }
+
 
 CommandDistance::CompareFingerPrintOutput* compareFingerPrintExcatSimilarity(CommandDistance::CompareFingerPrintInput* input) {
     const SketchFingerPrint& sketchRef = input->sketchRef;
