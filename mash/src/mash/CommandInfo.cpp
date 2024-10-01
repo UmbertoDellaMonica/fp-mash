@@ -46,6 +46,7 @@ namespace mash
         argumentString = "<sketch>";
 
         useOption("help");
+        
         addOption("header", Option(Option::Boolean, "H", "",
                                    "Only show header info. Do not list each sketch. Incompatible with -d, -t and -c.", ""));
         addOption("tabular", Option(Option::Boolean, "t", "",

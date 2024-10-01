@@ -944,13 +944,10 @@ void compareFingerPrintSketches(CommandDistance::CompareFingerPrintOutput::PairO
 
 
 CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimilarity(CommandDistance::CompareFingerPrintInput* input) {
-    
     const SketchFingerPrint& sketchRef = input->sketchRef;
     const SketchFingerPrint& sketchQuery = input->sketchQuery;
 
     CommandDistance::CompareFingerPrintOutput* output = new CommandDistance::CompareFingerPrintOutput(input->sketchRef, input->sketchQuery, input->indexRef, input->indexQuery, input->pairCount);
-
-    uint64_t sketchSize = std::min(sketchQuery.getMinHashesPerWindow(), sketchRef.getMinHashesPerWindow());
 
     uint64_t i = input->indexQuery;
     uint64_t j = input->indexRef;
@@ -960,23 +957,14 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
             const auto& refRef = sketchRef.getReference(j);
             const auto& refQry = sketchQuery.getReference(i);
 
-            if (refRef.subSketch_list.size() != refQry.subSketch_list.size()) {
-                output->pairs[k].pass = false;
-                continue;
-            }
-
             uint64_t totalCommon = 0;
             uint64_t totalDenom = 0;
 
             double jaccardIndex = jaccardSimilarityAndCommon(refRef.subSketch_list, refQry.subSketch_list, totalCommon, totalDenom);
 
-
             output->pairs[k].numer = totalCommon;
             output->pairs[k].denom = totalDenom;
-
-
             output->pairs[k].distance = 1.0 - jaccardIndex;
-
             output->pairs[k].pValue = pValue(totalCommon, refRef.subSketch_list.size(), refQry.subSketch_list.size(), sketchRef.getKmerSpace(), totalDenom);
 
             if (input->maxDistance >= 0 && output->pairs[k].distance > input->maxDistance) {
