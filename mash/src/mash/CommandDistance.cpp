@@ -958,6 +958,9 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 
     for (uint64_t k = 0; k < input->pairCount && i < sketchQuery.getReferenceCount(); k++) {
         try {
+
+            cout<<"Ripetizione k-esima : ["<<k<<"]"<<endl;
+
             const auto& refRef = sketchRef.getReference(j);
             const auto& refQry = sketchQuery.getReference(i);
 
@@ -968,6 +971,7 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 
             output->pairs[k].numer = totalCommon;
             output->pairs[k].denom = totalDenom;
+
             output->pairs[k].distance = 1.0 - jaccardIndex;
             output->pairs[k].pValue = pValue(totalCommon, refRef.subSketch_list.size(), refQry.subSketch_list.size(), sketchRef.getKmerSpace(), totalDenom);
 
@@ -1000,23 +1004,29 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
     int intersectionSize = 0;
     int unionSize = 0;
 
-    for (const auto& list1 : set1) {
+    // Identificare quale set è più grande
+    const std::vector<HashList>& largerSet = (set1.size() > set2.size()) ? set1 : set2;
+    const std::vector<HashList>& smallerSet = (set1.size() > set2.size()) ? set2 : set1;
+
+    // Calcolare l'intersezione e l'unione
+    for (const auto& list1 : largerSet) {
         bool foundSimilar = false;
-        for (const auto& list2 : set2) {
+        for (const auto& list2 : smallerSet) {
             if (areHashListsSimilar(list1, list2)) {
                 intersectionSize++;
                 foundSimilar = true;
                 totalCommon += 1; // Aggiornamento di totalCommon
-                totalDenom += 1; // Aggiornamento di totalDenom
                 break;
             }
         }
         unionSize++;
+        totalDenom += 1; // Aggiornamento di totalDenom per ogni elemento in largerSet
     }
 
-    for (const auto& list2 : set2) {
+    // Aggiungere gli elementi del smallerSet che non sono stati trovati nel largerSet
+    for (const auto& list2 : smallerSet) {
         bool foundSimilar = false;
-        for (const auto& list1 : set1) {
+        for (const auto& list1 : largerSet) {
             if (areHashListsSimilar(list1, list2)) {
                 foundSimilar = true;
                 break;
@@ -1024,12 +1034,13 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
         }
         if (!foundSimilar) {
             unionSize++;
-            totalDenom += 1; // Aggiornamento di totalDenom
+            // Non è necessario aggiornare totalDenom qui poiché largerSet già li contiene
         }
     }
 
     return static_cast<double>(intersectionSize) / unionSize;
 }
+
 
 
 int hashEquals64(uint64_t hash1, uint64_t hash2, uint64_t hash_size) {
