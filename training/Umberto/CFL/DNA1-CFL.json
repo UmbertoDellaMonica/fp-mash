@@ -1,0 +1,103 @@
+{
+  "kmer" : 1,
+  "alphabet" : "0123456789",
+  "preserveCase" : false,
+  "canonical" : false,
+  "sketchSize" : 1000,
+  "hashType" : "MurmurHash3_x64_128",
+  "hashBits" : 32,
+  "hashSeed" : 42,
+  "sketches" :
+  [
+    {
+      "ID" : "G00000P6GBVO3S_0",
+      "name" : "G00000P6GBVO3S_0",
+      "length" : 7955925901184475252,
+      "comment" : "FingerPrint : G00000P6GBVO3S_0",
+      "Hashes" : {
+        [3282828596, 317738052]
+      }
+    },
+    {
+      "ID" : "G000008H2ZX0LR_0",
+      "name" : "G000008H2ZX0LR_0",
+      "length" : 7955925901184475253,
+      "comment" : "FingerPrint : G000008H2ZX0LR_0",
+      "Hashes" : {
+        [2294581709]
+      }
+    },
+    {
+      "ID" : "G00000K1LE5CHJ_0",
+      "name" : "G00000K1LE5CHJ_0",
+      "length" : 7955925901184475254,
+      "comment" : "FingerPrint : G00000K1LE5CHJ_0",
+      "Hashes" : {
+        [2294581709]
+      }
+    },
+    {
+      "ID" : "G00000NOICTTDH_0",
+      "name" : "G00000NOICTTDH_0",
+      "length" : 7955925901184475255,
+      "comment" : "FingerPrint : G00000NOICTTDH_0",
+      "Hashes" : {
+        [317738052, 317738052, 885162080, 317738052]
+      }
+    },
+    {
+      "ID" : "G00000YBDEFWMR_0",
+      "name" : "G00000YBDEFWMR_0",
+      "length" : 7955925901184475256,
+      "comment" : "FingerPrint : G00000YBDEFWMR_0",
+      "Hashes" : {
+        [885162080, 885162080, 317738052]
+      }
+    },
+    {
+      "ID" : "G00000PZG7KK2D_0",
+      "name" : "G00000PZG7KK2D_0",
+      "length" : 7955925901184475257,
+      "comment" : "FingerPrint : G00000PZG7KK2D_0",
+      "Hashes" : {
+        [317738052, 3282828596]
+      }
+    },
+    {
+      "ID" : "G00000M4SFOKN7_0",
+      "name" : "G00000M4SFOKN7_0",
+      "length" : 7955925901184475258,
+      "comment" : "FingerPrint : G00000M4SFOKN7_0",
+      "Hashes" : {
+        [317738052, 3282828596]
+      }
+    },
+    {
+      "ID" : "G00000PFGOGWHF_0",
+      "name" : "G00000PFGOGWHF_0",
+      "length" : 7955925901184475259,
+      "comment" : "FingerPrint : G00000PFGOGWHF_0",
+      "Hashes" : {
+        [317738052, 1460359472, 317738052]
+      }
+    },
+    {
+      "ID" : "G00000S8WHZ93G_0",
+      "name" : "G00000S8WHZ93G_0",
+      "length" : 7955925901184475260,
+      "comment" : "FingerPrint : G00000S8WHZ93G_0",
+      "Hashes" : {
+        [317738052, 317738052, 317738052, 885162080]
+      }
+    },
+    {
+      "ID" : "G00000FM5IRYK9_0",
+      "name" : "G00000FM5IRYK9_0",
+      "length" : 7955925901184475261,
+      "comment" : "FingerPrint : G00000FM5IRYK9_0",
+      "Hashes" : {
+        [2294581709]
+      }
+    }
+  ]
+}

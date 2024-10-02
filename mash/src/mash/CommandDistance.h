@@ -179,6 +179,10 @@ void compareFingerPrintSketches(CommandDistance::CompareFingerPrintOutput::PairO
 CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimilarity(CommandDistance::CompareFingerPrintInput* input);
 
 double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon, uint64_t& totalDenom);
+int calculateUnion(const std::vector<HashList>& set1, const std::vector<HashList>& set2);
+int calculateIntersection(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon);
+
+
 
 int hashEquals64(uint64_t hash1, uint64_t hash2, uint64_t hash_size);
 int hashEquals32(uint32_t hash1, uint32_t hash2, uint32_t hash_size);

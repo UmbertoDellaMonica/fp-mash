@@ -7,6 +7,8 @@
 #include "ThreadPool.h"
 #include "sketchParameterSetup.h"
 #include <math.h>
+#include <unordered_set>
+
 
 #ifdef USE_BOOST
     #include <boost/math/distributions/binomial.hpp>
@@ -972,6 +974,8 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
             output->pairs[k].numer = totalCommon;
             output->pairs[k].denom = totalDenom;
 
+            cout<<"Total Denom : "<< totalDenom <<endl;
+            cout<<"Total Common : "<< totalCommon <<endl; 
             output->pairs[k].distance = 1.0 - jaccardIndex;
             output->pairs[k].pValue = pValue(totalCommon, refRef.subSketch_list.size(), refQry.subSketch_list.size(), sketchRef.getKmerSpace(), totalDenom);
 
@@ -1001,22 +1005,29 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 
 
 double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon, uint64_t& totalDenom) {
+    
     int intersectionSize = 0;
     int unionSize = 0;
 
     // Identificare quale set è più grande
     const std::vector<HashList>& largerSet = (set1.size() > set2.size()) ? set1 : set2;
     const std::vector<HashList>& smallerSet = (set1.size() > set2.size()) ? set2 : set1;
-
+    cout<<"Size Large Set : "<< largerSet.size() << endl;
+    cout<<"Size Smaller Set :"<< smallerSet.size() <<endl;
     // Calcolare l'intersezione e l'unione
     for (const auto& list1 : largerSet) {
+        
         bool foundSimilar = false;
+
         for (const auto& list2 : smallerSet) {
+        
             if (areHashListsSimilar(list1, list2)) {
+        
                 intersectionSize++;
                 foundSimilar = true;
                 totalCommon += 1; // Aggiornamento di totalCommon
                 break;
+        
             }
         }
         unionSize++;
@@ -1034,12 +1045,115 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
         }
         if (!foundSimilar) {
             unionSize++;
-            // Non è necessario aggiornare totalDenom qui poiché largerSet già li contiene
+            totalDenom++;
         }
     }
 
+
     return static_cast<double>(intersectionSize) / unionSize;
 }
+
+/*
+int calculateUnion(const std::vector<HashList>& set1, const std::vector<HashList>& set2) {
+    std::unordered_set<uint64_t> unionSet64;
+    std::unordered_set<uint32_t> unionSet32;
+    bool use64 = set1.empty() ? (set2.empty() ? true : set2[0].get64()) : set1[0].get64();
+
+    if (use64) {
+        for (const auto& list : set1) {
+            for (int i = 0; i < list.size(); ++i) {
+                unionSet64.insert(list.at(i).hash64);
+            }
+        }
+        for (const auto& list : set2) {
+            for (int i = 0; i < list.size(); ++i) {
+                unionSet64.insert(list.at(i).hash64);
+            }
+        }
+        return unionSet64.size();
+    } else {
+        for (const auto& list : set1) {
+            for (int i = 0; i < list.size(); ++i) {
+                unionSet32.insert(list.at(i).hash32);
+            }
+        }
+        for (const auto& list : set2) {
+            for (int i = 0; i < list.size(); ++i) {
+                unionSet32.insert(list.at(i).hash32);
+            }
+        }
+        return unionSet32.size();
+    }
+}
+*/
+
+
+
+
+/*
+int calculateIntersection(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon) {
+    
+    int intersectionSize = 0;
+    std::unordered_set<uint64_t> seenHashes64;
+    std::unordered_set<uint32_t> seenHashes32;
+    bool use64 = set1.empty() ? (set2.empty() ? true : set2[0].get64()) : set1[0].get64();
+
+    if (use64) {
+        std::unordered_set<uint64_t> hashesSet1;
+
+        // Popola il set con gli hash di set1
+        for (const auto& list1 : set1) {
+            for (int i = 0; i < list1.size(); ++i) {
+                hashesSet1.insert(list1.at(i).hash64);
+            }
+        }
+
+        // Controlla gli hash di set2 contro quelli in hashesSet1
+        for (const auto& list2 : set2) {
+            if (areHashListsSimilar(set1[0], list2)) { // Sostituisci con la logica appropriata
+                for (int i = 0; i < list2.size(); ++i) {
+                    uint64_t hash = list2.at(i).hash64;
+                    if (hashesSet1.find(hash) != hashesSet1.end() && seenHashes64.find(hash) == seenHashes64.end()) {
+                        intersectionSize++;
+                        seenHashes64.insert(hash);
+                        totalCommon++;
+                    }
+                }
+            }
+        }
+
+
+    } else {
+        std::unordered_set<uint32_t> hashesSet1;
+
+        // Popola il set con gli hash di set1
+        for (const auto& list1 : set1) {
+            for (int i = 0; i < list1.size(); ++i) {
+                hashesSet1.insert(list1.at(i).hash32);
+            }
+        }
+
+        // Controlla gli hash di set2 contro quelli in hashesSet1
+        for (const auto& list2 : set2) {
+            if (areHashListsSimilar(set1[0], list2)) { // Sostituisci con la logica appropriata
+                for (int i = 0; i < list2.size(); ++i) {
+                    uint32_t hash = list2.at(i).hash32;
+                    if (hashesSet1.find(hash) != hashesSet1.end() && seenHashes32.find(hash) == seenHashes32.end()) {
+                        intersectionSize++;
+                        seenHashes32.insert(hash);
+                        totalCommon++;
+                    }
+                }
+            }
+        }
+    }
+
+    return intersectionSize;
+}
+
+*/
+
+
 
 
 
@@ -1059,6 +1173,7 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2)  {
     int minSize = std::min(list1.size(), list2.size());
 
     bool tagUse64 = list1.get64() && list2.get64() ? true: false;
+
 
     for (size_t i = 0; i < minSize; ++i) {
         
@@ -1084,15 +1199,20 @@ bool areHashListsSimilar(const HashList& list1, const HashList& list2)  {
 
     int distance = distanceBetweenHashLists(list1, list2);
     bool tagUse64 = list1.get64() && list2.get64() ? true: false;
+
     
     int totalBits = 0;
 
     if(tagUse64){
-        int totalBits = std::max(list1.size(), list2.size()) * 64;
+        totalBits = std::max(list1.size(), list2.size()) * 64;
     }else{
-        int totalBits = std::max(list1.size(), list2.size()) * 64;
+        totalBits = std::max(list1.size(), list2.size()) * 32;
     }
-    return distance <= (totalBits * 0.25);
+
+
+    int totalDifference = (totalBits*0.25);
+
+    return distance <= (totalBits-totalDifference);
 }
 
 
