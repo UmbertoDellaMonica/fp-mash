@@ -503,7 +503,6 @@ int CommandDistance::runFingerPrint() const{
     }else{
 
 
-        cout<< "Sono qua - Metodo 2 !"<< endl;
         ThreadPool<CompareFingerPrintInput, CompareFingerPrintOutput> threadPool(compareFingerPrintWithPercentageSimilarity, threads);
         vector<string> queryFiles;
     
@@ -961,7 +960,6 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
     for (uint64_t k = 0; k < input->pairCount && i < sketchQuery.getReferenceCount(); k++) {
         try {
 
-            cout<<"Ripetizione k-esima : ["<<k<<"]"<<endl;
 
             const auto& refRef = sketchRef.getReference(j);
             const auto& refQry = sketchQuery.getReference(i);
@@ -973,9 +971,6 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 
             output->pairs[k].numer = totalCommon;
             output->pairs[k].denom = totalDenom;
-
-            cout<<"Total Denom : "<< totalDenom <<endl;
-            cout<<"Total Common : "<< totalCommon <<endl; 
             output->pairs[k].distance = 1.0 - jaccardIndex;
             output->pairs[k].pValue = pValue(totalCommon, refRef.subSketch_list.size(), refQry.subSketch_list.size(), sketchRef.getKmerSpace(), totalDenom);
 
@@ -1004,38 +999,40 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 }
 
 
-double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon, uint64_t& totalDenom) {
-    
-    int intersectionSize = 0;
-    int unionSize = 0;
+#include <unordered_set>
 
-    // Identificare quale set è più grande
-    const std::vector<HashList>& largerSet = (set1.size() > set2.size()) ? set1 : set2;
-    const std::vector<HashList>& smallerSet = (set1.size() > set2.size()) ? set2 : set1;
-    cout<<"Size Large Set : "<< largerSet.size() << endl;
-    cout<<"Size Smaller Set :"<< smallerSet.size() <<endl;
-    // Calcolare l'intersezione e l'unione
+double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon, uint64_t& totalDenom) {
+    int intersectionSize = 0; // Dimensione dell'intersezione
+    int unionSize = 0; // Dimensione dell'unione
+
+    // Identifica quale set è più grande
+    const auto& largerSet = (set1.size() > set2.size()) ? set1 : set2;
+    const auto& smallerSet = (set1.size() > set2.size()) ? set2 : set1;
+
+    // Usa un insieme per tenere traccia degli elementi già trovati nell'intersezione
+    std::unordered_set<size_t> foundIndices; // Indici di HashList già trovati nel largerSet
+
+    // Calcola l'intersezione e l'unione
     for (const auto& list1 : largerSet) {
-        
         bool foundSimilar = false;
 
+        // Controlla se list1 è simile a uno degli elementi in smallerSet
         for (const auto& list2 : smallerSet) {
-        
             if (areHashListsSimilar(list1, list2)) {
-        
-                intersectionSize++;
+                intersectionSize++; // Incrementa la dimensione dell'intersezione
                 foundSimilar = true;
-                totalCommon += 1; // Aggiornamento di totalCommon
-                break;
-        
+                totalCommon++; // Aggiorna totalCommon
+                foundIndices.insert(&list1 - &largerSet[0]); // Aggiungi l'indice di list1
+                break; // Un match trovato, esci dal ciclo interno
             }
         }
-        unionSize++;
-        totalDenom += 1; // Aggiornamento di totalDenom per ogni elemento in largerSet
+        unionSize++; // Aggiungi a unionSize per ogni elemento in largerSet
+        totalDenom++; // Aggiornamento di totalDenom
     }
 
-    // Aggiungere gli elementi del smallerSet che non sono stati trovati nel largerSet
+    // Aggiungi gli elementi del smallerSet che non sono stati trovati nel largerSet
     for (const auto& list2 : smallerSet) {
+        // Verifica se list2 è simile a un elemento già trovato in largerSet
         bool foundSimilar = false;
         for (const auto& list1 : largerSet) {
             if (areHashListsSimilar(list1, list2)) {
@@ -1044,115 +1041,19 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
             }
         }
         if (!foundSimilar) {
-            unionSize++;
+            unionSize++; // Aggiungi a unionSize se list2 non è stato trovato
             totalDenom++;
         }
     }
 
+    // Verifica di evitare divisione per zero
+    if (unionSize == 0) {
+        return 0.0; // Nessuna similarità se l'unione è zero
+    }
 
+    // Calcola e restituisce il coefficiente di similarità di Jaccard
     return static_cast<double>(intersectionSize) / unionSize;
 }
-
-/*
-int calculateUnion(const std::vector<HashList>& set1, const std::vector<HashList>& set2) {
-    std::unordered_set<uint64_t> unionSet64;
-    std::unordered_set<uint32_t> unionSet32;
-    bool use64 = set1.empty() ? (set2.empty() ? true : set2[0].get64()) : set1[0].get64();
-
-    if (use64) {
-        for (const auto& list : set1) {
-            for (int i = 0; i < list.size(); ++i) {
-                unionSet64.insert(list.at(i).hash64);
-            }
-        }
-        for (const auto& list : set2) {
-            for (int i = 0; i < list.size(); ++i) {
-                unionSet64.insert(list.at(i).hash64);
-            }
-        }
-        return unionSet64.size();
-    } else {
-        for (const auto& list : set1) {
-            for (int i = 0; i < list.size(); ++i) {
-                unionSet32.insert(list.at(i).hash32);
-            }
-        }
-        for (const auto& list : set2) {
-            for (int i = 0; i < list.size(); ++i) {
-                unionSet32.insert(list.at(i).hash32);
-            }
-        }
-        return unionSet32.size();
-    }
-}
-*/
-
-
-
-
-/*
-int calculateIntersection(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon) {
-    
-    int intersectionSize = 0;
-    std::unordered_set<uint64_t> seenHashes64;
-    std::unordered_set<uint32_t> seenHashes32;
-    bool use64 = set1.empty() ? (set2.empty() ? true : set2[0].get64()) : set1[0].get64();
-
-    if (use64) {
-        std::unordered_set<uint64_t> hashesSet1;
-
-        // Popola il set con gli hash di set1
-        for (const auto& list1 : set1) {
-            for (int i = 0; i < list1.size(); ++i) {
-                hashesSet1.insert(list1.at(i).hash64);
-            }
-        }
-
-        // Controlla gli hash di set2 contro quelli in hashesSet1
-        for (const auto& list2 : set2) {
-            if (areHashListsSimilar(set1[0], list2)) { // Sostituisci con la logica appropriata
-                for (int i = 0; i < list2.size(); ++i) {
-                    uint64_t hash = list2.at(i).hash64;
-                    if (hashesSet1.find(hash) != hashesSet1.end() && seenHashes64.find(hash) == seenHashes64.end()) {
-                        intersectionSize++;
-                        seenHashes64.insert(hash);
-                        totalCommon++;
-                    }
-                }
-            }
-        }
-
-
-    } else {
-        std::unordered_set<uint32_t> hashesSet1;
-
-        // Popola il set con gli hash di set1
-        for (const auto& list1 : set1) {
-            for (int i = 0; i < list1.size(); ++i) {
-                hashesSet1.insert(list1.at(i).hash32);
-            }
-        }
-
-        // Controlla gli hash di set2 contro quelli in hashesSet1
-        for (const auto& list2 : set2) {
-            if (areHashListsSimilar(set1[0], list2)) { // Sostituisci con la logica appropriata
-                for (int i = 0; i < list2.size(); ++i) {
-                    uint32_t hash = list2.at(i).hash32;
-                    if (hashesSet1.find(hash) != hashesSet1.end() && seenHashes32.find(hash) == seenHashes32.end()) {
-                        intersectionSize++;
-                        seenHashes32.insert(hash);
-                        totalCommon++;
-                    }
-                }
-            }
-        }
-    }
-
-    return intersectionSize;
-}
-
-*/
-
 
 
 
@@ -1168,52 +1069,45 @@ int hashEquals32(uint32_t hash1, uint32_t hash2, uint32_t hash_size) {
 }
 
 
-int distanceBetweenHashLists(const HashList& list1, const HashList& list2)  {
+
+
+int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
+    // Calcola la distanza totale tra due HashList
     int totalDistance = 0;
     int minSize = std::min(list1.size(), list2.size());
 
-    bool tagUse64 = list1.get64() && list2.get64() ? true: false;
+    // Determina se entrambe le liste utilizzano hash a 64 bit
+    bool tagUse64 = list1.get64() && list2.get64();
+    int hashSize = tagUse64 ? 64 : 32; // Dimensione dell'hash
 
-
+    // Calcola la distanza per i primi minSize elementi
     for (size_t i = 0; i < minSize; ++i) {
-        
-        if(tagUse64){
-            totalDistance += hashEquals64(list1.at(i).hash64, list2.at(i).hash64,64);
-        }else{
-            totalDistance += hashEquals32(list1.at(i).hash32, list2.at(i).hash32,32);
-        }
+        // Aggiungi la distanza per i hash a 64 bit o 32 bit
+        totalDistance += tagUse64 ? hashEquals64(list1.at(i).hash64, list2.at(i).hash64, hashSize)
+                                   : hashEquals32(list1.at(i).hash32, list2.at(i).hash32, hashSize);
     }
 
-    if(tagUse64){
-        totalDistance += (list1.size() - minSize) * 64;
-        totalDistance += (list2.size() - minSize) * 64;
-    }else{
-        totalDistance += (list1.size() - minSize) * 32;
-        totalDistance += (list2.size() - minSize) * 32;
-    }
+    // Calcola la distanza per gli elementi rimanenti
+    totalDistance += (list1.size() - minSize + list2.size() - minSize) * hashSize;
 
-    return totalDistance;
+    return totalDistance; // Restituisce la distanza totale
 }
 
-bool areHashListsSimilar(const HashList& list1, const HashList& list2)  {
-
+bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
+    // Calcola la distanza tra le due liste
     int distance = distanceBetweenHashLists(list1, list2);
-    bool tagUse64 = list1.get64() && list2.get64() ? true: false;
-
     
-    int totalBits = 0;
+    // Determina il numero totale di bit basato sul tipo di hash
+    bool tagUse64 = list1.get64() && list2.get64();
+    int totalBits = std::max(list1.size(), list2.size()) * (tagUse64 ? 64 : 32);
 
-    if(tagUse64){
-        totalBits = std::max(list1.size(), list2.size()) * 64;
-    }else{
-        totalBits = std::max(list1.size(), list2.size()) * 32;
-    }
+    // Calcola la tolleranza come il 25% del totale dei bit
+    int threshold = totalBits / 4; // 25% del totale dei bit
 
-
-    int totalDifference = (totalBits*0.25);
-
-    return distance <= (totalBits-totalDifference);
+    // Restituisce true se la distanza è inferiore o uguale alla tolleranza
+    return distance <= (totalBits - threshold);
 }
+
 
 
 //--------------------------------------- FingerPrint - Jaccard With % of Similarity -------------------------------------------------------// 

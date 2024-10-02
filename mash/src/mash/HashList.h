@@ -32,6 +32,19 @@ public:
         }
     }
 
+    std::vector<uint64_t> toVector() const {
+        if (use64) {
+            return std::vector<uint64_t>(hashes64.begin(), hashes64.end());
+        } else {
+            std::vector<uint64_t> result;
+            result.reserve(hashes32.size());
+            for (const auto& hash : hashes32) {
+                result.push_back(static_cast<uint64_t>(hash)); // O una conversione adeguata
+            }
+            return result;
+        }
+    }
+
 
 
 
