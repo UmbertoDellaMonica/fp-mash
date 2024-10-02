@@ -1002,6 +1002,7 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 #include <unordered_set>
 
 double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::vector<HashList>& set2, uint64_t& totalCommon, uint64_t& totalDenom) {
+    
     int intersectionSize = 0; // Dimensione dell'intersezione
     int unionSize = 0; // Dimensione dell'unione
 
@@ -1014,6 +1015,7 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
 
     // Calcola l'intersezione e l'unione
     for (const auto& list1 : largerSet) {
+        
         bool foundSimilar = false;
 
         // Controlla se list1 è simile a uno degli elementi in smallerSet
@@ -1037,6 +1039,7 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
         for (const auto& list1 : largerSet) {
             if (areHashListsSimilar(list1, list2)) {
                 foundSimilar = true;
+                totalDenom++; // Aggiornamento di totalDenom quando viene trovata una corrispondenza
                 break;
             }
         }
@@ -1050,7 +1053,7 @@ double jaccardSimilarityAndCommon(const std::vector<HashList>& set1, const std::
     if (unionSize == 0) {
         return 0.0; // Nessuna similarità se l'unione è zero
     }
-
+    totalDenom= totalDenom-intersectionSize;
     // Calcola e restituisce il coefficiente di similarità di Jaccard
     return static_cast<double>(intersectionSize) / unionSize;
 }
@@ -1102,7 +1105,7 @@ bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
     int totalBits = std::max(list1.size(), list2.size()) * (tagUse64 ? 64 : 32);
 
     // Calcola la tolleranza come il 25% del totale dei bit
-    int threshold = totalBits / 4; // 25% del totale dei bit
+    int threshold = totalBits * 0.25; // 25% del totale dei bit
 
     // Restituisce true se la distanza è inferiore o uguale alla tolleranza
     return distance <= (totalBits - threshold);
