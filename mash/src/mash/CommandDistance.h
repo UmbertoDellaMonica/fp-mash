@@ -190,6 +190,9 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2);
 bool areHashListsSimilar(const HashList& list1, const HashList& list2);
 
 
+int calculateUnion(const std::vector<HashList>& largerSet, const std::vector<HashList>& smallerSet);
+int calculateIntersection(const std::vector<HashList>& largerSet, const std::vector<HashList>& smallerSet);
+
 
 // ------------------------------------ FINGERPRINT ----------------------------------//
 

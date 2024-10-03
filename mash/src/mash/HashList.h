@@ -3,6 +3,8 @@
 
 #include "hash.h"
 #include <vector>
+#include <iostream>
+#include <string>
 
 class HashList
 {
@@ -45,6 +47,22 @@ public:
         }
     }
 
+
+    // Funzione per stampare il contenuto di HashList
+    std::string toString() const {
+        std::string result = "{ ";
+        if (use64) {
+            for (const auto& hash : hashes64) {
+                result += std::to_string(hash) + " ";
+            }
+        } else {
+            for (const auto& hash : hashes32) {
+                result += std::to_string(hash) + " ";
+            }
+        }
+        result += "}";
+        return result;
+    }
 
 
 
