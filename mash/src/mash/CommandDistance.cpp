@@ -8,6 +8,7 @@
 #include "sketchParameterSetup.h"
 #include <math.h>
 #include <unordered_set>
+#include <iomanip>
 
 
 #ifdef USE_BOOST
@@ -19,7 +20,7 @@
 
 using namespace::std;
 
-#define THRESHOLD 0.0
+#define THRESHOLD 0.25
 
 
 namespace mash {
@@ -1211,6 +1212,7 @@ int calculateIntersection(const std::vector<HashList>& largerSet, const std::vec
 }
 
 
+// ########### CALCOLO DELLA DISTANZA DI HAMMING TRA I VARI VETTORI DI HASH ############
 
 
 // Funzioni di confronto per hash a 64 bit e 32 bit
@@ -1222,6 +1224,8 @@ int hashEquals32(uint32_t hash1, uint32_t hash2, int hashSize) {
     return (hash1 == hash2) ? 0 : hashSize;
 }
 
+/* calcolo dove avviene la funzione di calcolo di Hamming Distance
+/*
 int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     // Calcola la distanza totale tra due HashList
     int totalDistance = 0;
@@ -1247,23 +1251,182 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     return totalDistance; // Restituisce la distanza totale
 
 }
+*/
+
+// FUNZIONE PER IL CALCOLO DI JACCARD
+/*
+int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
+    // Calcola la distanza di Jaccard tra due HashList
+    int intersectionCount = 0;
+    int unionCount = 0;
+
+    // Verifica che entrambe le liste utilizzino lo stesso tipo di hash (64-bit o 32-bit)
+    bool tagUse64 = list1.get64() && list2.get64();
+    if (list1.get64() != list2.get64()) {
+        throw std::invalid_argument("Both HashLists must use the same hash size (either 64-bit or 32-bit).");
+    }
+
+    // Utilizza un set per contare l'unione e l'intersezione degli hash, distinguendo tra 32-bit e 64-bit
+    if (tagUse64) {
+        // Se usiamo hash a 64-bit
+        std::unordered_set<uint64_t> unionSet64;
+        std::unordered_set<uint64_t> intersectionSet64;
+
+        // Aggiunge gli hash dalla prima lista all'unionSet
+        for (size_t i = 0; i < list1.size(); ++i) {
+            unionSet64.insert(list1.at(i).hash64);
+        }
+
+        // Controlla l'intersezione e aggiunge gli hash dalla seconda lista all'unionSet
+        for (size_t i = 0; i < list2.size(); ++i) {
+            uint64_t hash = list2.at(i).hash64;
+            if (unionSet64.find(hash) != unionSet64.end()) {
+                intersectionSet64.insert(hash);
+            }
+            unionSet64.insert(hash);
+        }
+
+        // Calcola l'intersezione e l'unione per hash a 64-bit
+        intersectionCount = intersectionSet64.size();
+        unionCount = unionSet64.size();
+    } else {
+        // Se usiamo hash a 32-bit
+        std::unordered_set<uint32_t> unionSet32;
+        std::unordered_set<uint32_t> intersectionSet32;
+
+        // Aggiunge gli hash dalla prima lista all'unionSet
+        for (size_t i = 0; i < list1.size(); ++i) {
+            unionSet32.insert(list1.at(i).hash32);
+        }
+
+        // Controlla l'intersezione e aggiunge gli hash dalla seconda lista all'unionSet
+        for (size_t i = 0; i < list2.size(); ++i) {
+            uint32_t hash = list2.at(i).hash32;
+            if (unionSet32.find(hash) != unionSet32.end()) {
+                intersectionSet32.insert(hash);
+            }
+            unionSet32.insert(hash);
+        }
+
+        // Calcola l'intersezione e l'unione per hash a 32-bit
+        intersectionCount = intersectionSet32.size();
+        unionCount = unionSet32.size();
+    }
+
+    // Se non ci sono elementi nell'unione, la distanza è 0
+    if (unionCount == 0) {
+        return 0;
+    }
+
+    // Calcola e restituisce la distanza di Jaccard
+    double jaccardDistance = 1.0 - (double(intersectionCount) / unionCount);
+    return static_cast<int>(jaccardDistance);
+}*/
+
+
+//FUNZIONE DI DISTANZA TRA VETTORI CON DISTANZA DI EDIT
+#include "HashList.h"
+#include <vector>
+#include <stdexcept>
+#include <algorithm>
+
+// Funzione per calcolare la distanza di Levenshtein tra due HashList
+int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
+    size_t m = list1.size();
+    size_t n = list2.size();
+
+    // Verifica se entrambe le liste utilizzano hash a 64 bit o 32 bit
+    bool use64 = list1.get64() && list2.get64();
+    if (list1.get64() != list2.get64()) {
+        throw std::invalid_argument("Both HashLists must use the same hash size (either 64-bit or 32-bit).");
+    }
+
+    // Inizializzazione della matrice (m+1) x (n+1)
+    std::vector<std::vector<int>> matrix(m + 1, std::vector<int>(n + 1, 0));
+
+    // Inizializzazione della prima riga e della prima colonna
+    for (size_t i = 0; i <= m; ++i) {
+        matrix[i][0] = static_cast<int>(i);
+    }
+    for (size_t j = 0; j <= n; ++j) {
+        matrix[0][j] = static_cast<int>(j);
+    }
+
+    // Popolazione della matrice
+    for (size_t i = 1; i <= m; ++i) {
+        for (size_t j = 1; j <= n; ++j) {
+            int cost;
+            if (use64) {
+                // Confronta hash a 64 bit
+                cost = (list1.at(i - 1).hash64 == list2.at(j - 1).hash64) ? 0 : 1;
+            } else {
+                // Confronta hash a 32 bit
+                cost = (list1.at(i - 1).hash32 == list2.at(j - 1).hash32) ? 0 : 1;
+            }
+
+            // Calcola il minimo tra eliminazione, inserimento e sostituzione
+            matrix[i][j] = std::min({
+                matrix[i - 1][j] + 1,      // Eliminazione
+                matrix[i][j - 1] + 1,      // Inserimento
+                matrix[i - 1][j - 1] + cost // Sostituzione
+            });
+        }
+    }
+
+    // Stampa della matrice
+    std::cout << "Matrice della Distanza di Levenshtein:\n";
+    std::cout << std::setw(8) << "";
+    for (size_t j = 0; j <= n; ++j) {
+        if (j > 0) {
+            if (use64)
+                std::cout << std::setw(10) << list2.at(j - 1).hash64;
+            else
+                std::cout << std::setw(10) << list2.at(j - 1).hash32;
+        } else {
+            std::cout << std::setw(10) << "-";
+        }
+    }
+    std::cout << "\n";
+    for (size_t i = 0; i <= m; ++i) {
+        if (i > 0) {
+            if (use64)
+                std::cout << std::setw(8) << list1.at(i - 1).hash64;
+            else
+                std::cout << std::setw(8) << list1.at(i - 1).hash32;
+        } else {
+            std::cout << std::setw(8) << "-";
+        }
+
+        for (size_t j = 0; j <= n; ++j) {
+            std::cout << std::setw(10) << matrix[i][j];
+        }
+        std::cout << "\n";
+    }
+
+    cout << "distanza minima: " << matrix[m][n] << endl;
+    // La distanza finale si trova nell'ultima cella della matrice
+    return matrix[m][n];
+}
+
+
+
 
 bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
 
 
-    // Calcola la distanza tra le due liste
+
     int distance = distanceBetweenHashLists(list1, list2);
     
-    // Determina il numero totale di bit basato sul tipo di hash
+
     bool tagUse64 = list1.get64() && list2.get64();
-    int totalBits = std::max(list1.size(), list2.size()) * (tagUse64 ? 64 : 32);
+    //int totalBits = std::max(list1.size(), list2.size()) * (tagUse64 ? 64 : 32);
+    int max_size = max(list1.size(), list2.size());
+    int maxThreshold = max_size *THRESHOLD; // % del totale dei bit, parte bassa
+    cout << "threshold da rispettare: " << maxThreshold << endl;
 
-    // Calcola la tolleranza come il 20% del totale dei bit
-    int maxThreshold = totalBits *THRESHOLD; // 20% del totale dei bit
-
-    // Restituisce true se la distanza è inferiore o uguale alla tolleranza
     return distance <= maxThreshold;
 }
+// ############# FINE CALCOLO DELLA DISTANZA DI HAMMING TRA I VARI VETTORI DI HASH ######################
 //--------------------------------------- FingerPrint - Jaccard With % of Similarity -------------------------------------------------------// 
 
 
