@@ -1,18 +1,19 @@
 # PRIMO APPROCCIO:
 # PRENDERE DUE FILE FASTA E METTERLI IN UN UNICO FILE
-# EFFETTUARE (LONGEST AND MOST FREQUENT TCOMMON SEQUENCE)
+# EFFETTUARE (LONGEST AND MOST FREQUENT TCOMMON SEQUENCE) 
     # Estraiamo tutte le sottosequenze possibili per entrambe le sequenze.
     # Confrontiamo le sottosequenze delle due sequenze per trovare quelle comuni.
     # Tracciamo quante volte ogni sottosequenza comune si ripete tra le due sequenze.
     # Identifichiamo la sottosequenza con la frequenza totale maggiore.
     # Alla fine, selezioniamo la sottosequenza comune che è sia la più lunga sia la più frequente. 
-    # In caso di parità di lunghezza, scegliamo quella con la maggiore frequenza. (DA FARE)
-    # Altrimenti prendiamo la prima in ordine alfabetico. (DA FARE)
-# EFFETTUARE LO SPLIT DEI DUE FILE ORIGINALI TROVANDO LA SEQUENZA
-# SPLITTARE DAL SUO INIZIO AGGIUNGENDO A CAPO RIGA DI ID E POI A CAPO LA NUOVA SEQUENZA
-
-
-# FARE IL COMANDO DA CONSOLE
+    # In caso di parità di lunghezza, scegliamo quella con la maggiore frequenza. 
+    # Altrimenti prendiamo la prima in ordine alfabetico.
+    # (CONCORDARE DUE PUNTI):
+        # I PARAMETRI DA SCEGLIERE PER CAPIRE QUALE LUNGHEZZA DELLA SOTTOSEQUENZA PRENDERE
+        # CAPIRE IL TIPO DI FREQUENZA PREFERIBILE PER LA FATTORIZZAZIONE
+# EFFETTUARE LO SPLIT DEI DUE FILE ORIGINALI TROVANDO LA SEQUENZA (DA FARE)
+# SPLITTARE DAL SUO INIZIO AGGIUNGENDO A CAPO RIGA DI ID E POI A CAPO LA NUOVA SSEQUENZA (DA FARE)
+# FARE IL COMANDO DA CONSOLE (DA FARE)
 
 
 #APPROCCIO CON SUFFIX ARRAY
