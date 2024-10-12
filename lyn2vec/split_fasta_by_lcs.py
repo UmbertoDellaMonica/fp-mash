@@ -42,33 +42,33 @@ def build_lcp(s, suffix_array):
     return lcp
 
 def find_all_common_substrings_with_frequencies(seq1, seq2):
-    # Concatenare le due sequenze con un delimitatore
     combined_seq = seq1 + '#' + seq2 + '$'
     s1_len = len(seq1)
 
-    # Costruire il suffix array
+
     suffix_array = build_suffix_array(combined_seq)
     
-    # Costruire l'LCP array
+
     lcp = build_lcp(combined_seq, suffix_array)
 
     substrings_with_frequencies = []
 
-    # Cerca tutte le sottostringhe comuni usando l'LCP array
+
     for i in range(1, len(combined_seq)):
         if (suffix_array[i] < s1_len) != (suffix_array[i - 1] < s1_len):
-            if lcp[i] >= 4:  # lunghezza >= 4
+            if lcp[i] >= 4: 
                 substring = combined_seq[suffix_array[i]:suffix_array[i] + lcp[i]]
                 
                
                 frequency1 = seq1.count(substring)
                 frequency2 = seq2.count(substring)
                 
-                
+               
                 substrings_with_frequencies.append((substring, frequency1, frequency2))
 
-    # Ordina le sottostringhe per frequenza totale (somma di freq1 e freq2) in ordine decrescente
-    substrings_with_frequencies.sort(key=lambda x: (x[1] + x[2]), reverse=True)
+    # le sottosequenze vengono salvate in ordine decrescente e vengono ordinate
+    # in modo tale che la più lunga e la più frequente (e la prima in ordine alfabetico) sia la scelta (DA CONCORDARE)
+    substrings_with_frequencies.sort(key=lambda x: (len(x[0]), x[1] + x[2]), reverse=True)
 
     return substrings_with_frequencies
 
@@ -81,39 +81,42 @@ def save_substrings_to_file(substrings_with_frequencies, output_file):
     except IOError:
         print(f"Errore durante il salvataggio del file {output_file}")
 
-# Funzione principale che legge i file FASTA e trova tutte le sottostringhe comuni
+
+
 def LMFCS(file1, file2, output_file):
     try:
         with open(file1, 'r') as f1:
-            seq1 = f1.read().replace("\n", "").replace(" ", "")  # Rimuovi gli a capo e gli spazi
+            seq1 = f1.read()
     except IOError:
         print(f"Errore durante l'apertura del file {file1}")
         return
     
     try:
         with open(file2, 'r') as f2:
-            seq2 = f2.read().replace("\n", "").replace(" ", "")  # Rimuovi gli a capo e gli spazi
+            seq2 = f2.read()
     except IOError:
         print(f"Errore durante l'apertura del file {file2}")
         return
 
-    # Trova tutte le sottostringhe comuni e le loro frequenze
+   
     substrings_with_frequencies = find_all_common_substrings_with_frequencies(seq1, seq2)
     
-    # Salva le sottostringhe e le loro frequenze in un file
+    
     save_substrings_to_file(substrings_with_frequencies, output_file)
 
+    
+    if substrings_with_frequencies:
+        best_choice = substrings_with_frequencies[0]
+        print(f"La migliore sottosequenza è: {best_choice[0]} con frequenza in file1: {best_choice[1]} e in file2: {best_choice[2]}")
+    else:
+        print("Nessuna sottosequenza comune trovata di lunghezza >= 4.")
 
-# Esempio di utilizzo
+    return best_choice[0]
+
+
 if __name__ == '__main__':
     file1 = "lcs_fasta/file1.fasta"
     file2 = "lcs_fasta/file2.fasta"
     output_file = "substrings_frequencies.txt"
     
-    LMFCS(file1, file2, output_file)
-
-
-
-
-
-    
+    substring = LMFCS(file1, file2, output_file)
