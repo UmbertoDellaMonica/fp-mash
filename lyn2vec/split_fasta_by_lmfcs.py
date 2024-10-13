@@ -129,7 +129,7 @@ def split_file(filename, substring):
     if substring is None:
         print(f"Nessuna sottosequenza trovata per dividere {filename}.")
         return
-
+    # qui trova il file nella cartella lcs_fasta (cambiare questa?)
     with open("lcs_fasta/" + filename, 'r') as f_in, open("lcs_fasta/splitted_" + filename, 'w') as f_out:
         current_id = None
         current_sequence = ""
@@ -171,11 +171,9 @@ if __name__ == '__main__':
     output_file = "lcs_fasta/" + args.output
     min_length = args.min_length
 
-    
-    # Esegui il calcolo della sottosequenza più lunga e frequente
+
     substring = LMFCS(file1, file2, output_file, min_length)
 
-    # Effettua lo split dei file originali utilizzando la sottosequenza trovata
     split_file(file1, substring)
     split_file(file2, substring)
 
