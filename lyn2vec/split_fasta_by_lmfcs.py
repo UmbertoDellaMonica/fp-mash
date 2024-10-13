@@ -114,11 +114,15 @@ def split_sequence(sequence, subseq):
             result.append(sequence[start:])
             break
         
-
-        result.append(sequence[start:index + len(subseq)])
-        start = index + len(subseq)
+        if start != index:
+            result.append(sequence[start:index])
+        
+        start = index
+        result.append(sequence[start:])
+        break
     
     return result
+
 
 
 def split_file(filename, substring):
