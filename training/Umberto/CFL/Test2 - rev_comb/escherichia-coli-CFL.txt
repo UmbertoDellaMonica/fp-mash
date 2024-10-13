@@ -298,3 +298,303 @@ Escherichia_0 5 16 32 4 8 34 1
 Escherichia_0 1 1 1 1 16 32 4 8 34 1 1
 Escherichia_0 1 1 1 16 32 4 8 34 1 1 1
 Escherichia_0 1 1 16 32 4 8 34 1 1 1 1
+Escherichia_1 3 2 4 44 46 1
+Escherichia_1 2 2 4 44 46 1 1
+Escherichia_1 1 2 4 44 49
+Escherichia_1 2 4 44 50
+Escherichia_1 1 4 44 51
+Escherichia_1 4 44 51 1
+Escherichia_1 1 1 1 44 53
+Escherichia_1 1 1 44 54
+Escherichia_1 1 44 55
+Escherichia_1 44 56
+Escherichia_1 15 28 56 1
+Escherichia_1 6 8 28 58
+Escherichia_1 1 4 8 28 59
+Escherichia_1 4 8 28 60
+Escherichia_1 3 8 28 61
+Escherichia_1 1 1 8 28 62
+Escherichia_1 1 8 28 62 1
+Escherichia_1 8 28 62 1 1
+Escherichia_1 1 2 4 28 65
+Escherichia_1 2 4 28 66
+Escherichia_1 1 4 28 67
+Escherichia_1 4 28 68
+Escherichia_1 3 28 69
+Escherichia_1 1 1 28 70
+Escherichia_1 1 28 71
+Escherichia_1 28 72
+Escherichia_1 4 7 8 8 73
+Escherichia_1 1 1 1 7 8 8 74
+Escherichia_1 1 1 7 8 8 75
+Escherichia_1 1 7 8 8 76
+Escherichia_1 7 8 8 76 1
+Escherichia_1 2 3 1 8 8 78
+Escherichia_1 1 3 1 8 8 79
+Escherichia_1 3 1 8 8 80
+Escherichia_1 2 1 8 8 81
+Escherichia_1 1 1 8 8 82
+Escherichia_1 1 8 8 83
+Escherichia_1 8 8 83 1
+Escherichia_1 5 2 8 85
+Escherichia_1 1 1 1 1 2 8 86
+Escherichia_1 1 1 1 2 8 87
+Escherichia_1 1 1 2 8 87 1
+Escherichia_1 1 2 8 89
+Escherichia_1 2 8 90
+Escherichia_1 1 8 90 1
+Escherichia_1 8 92
+Escherichia_1 7 93
+Escherichia_1 1 2 3 94
+Escherichia_1 2 3 95
+Escherichia_1 1 3 96
+Escherichia_1 3 97
+Escherichia_1 2 98
+Escherichia_1 1 98 1
+Escherichia_1 98 1 1
+Escherichia_1 61 36 1 1 1
+Escherichia_1 4 40 16 36 4
+Escherichia_1 1 2 40 16 36 5
+Escherichia_1 2 40 16 36 6
+Escherichia_1 1 40 16 36 7
+Escherichia_1 40 16 36 8
+Escherichia_1 1 2 2 12 22 16 36 9
+Escherichia_1 2 2 12 22 16 36 10
+Escherichia_1 1 2 12 22 16 36 11
+Escherichia_1 2 12 22 16 36 12
+Escherichia_1 1 12 22 16 36 12 1
+Escherichia_1 12 22 16 36 14
+Escherichia_1 3 1 7 22 16 36 15
+Escherichia_1 2 1 7 22 16 36 16
+Escherichia_1 1 1 7 22 16 36 17
+Escherichia_1 1 7 22 16 36 17 1
+Escherichia_1 7 22 16 36 17 1 1
+Escherichia_1 1 1 2 1 1 22 16 36 20
+Escherichia_1 1 2 1 1 22 16 36 20 1
+Escherichia_1 2 1 1 22 16 36 22
+Escherichia_1 1 1 1 22 16 36 23
+Escherichia_1 1 1 22 16 36 23 1
+Escherichia_1 1 22 16 36 25
+Escherichia_1 22 16 36 26
+Escherichia_1 13 7 1 16 36 27
+Escherichia_1 12 7 1 16 36 27 1
+Escherichia_1 1 6 4 7 1 16 36 27 1 1
+Escherichia_1 6 4 7 1 16 36 30
+Escherichia_1 1 1 2 1 4 7 1 16 36 31
+Escherichia_1 1 2 1 4 7 1 16 36 32
+Escherichia_1 2 1 4 7 1 16 36 33
+Escherichia_1 1 1 4 7 1 16 36 34
+Escherichia_1 1 4 7 1 16 36 35
+Escherichia_1 4 7 1 16 36 36
+Escherichia_1 1 1 1 7 1 16 36 37
+Escherichia_1 1 1 7 1 16 36 38
+Escherichia_1 1 7 1 16 36 39
+Escherichia_1 7 1 16 36 40
+Escherichia_1 6 1 16 36 41
+Escherichia_1 5 1 16 36 42
+Escherichia_1 4 1 16 36 43
+Escherichia_1 3 1 16 36 44
+Escherichia_1 2 1 16 36 44 1
+Escherichia_1 1 1 16 36 46
+Escherichia_1 1 16 36 47
+Escherichia_1 16 36 48
+Escherichia_1 9 6 36 48 1
+Escherichia_1 1 1 1 5 6 36 48 1 1
+Escherichia_1 1 1 5 6 36 51
+Escherichia_1 1 5 6 36 52
+Escherichia_1 5 6 36 52 1
+Escherichia_1 1 1 1 1 6 36 52 1 1
+Escherichia_1 1 1 1 6 36 52 1 1 1
+Escherichia_1 1 1 6 36 52 4
+Escherichia_1 1 6 36 52 5
+Escherichia_1 6 36 52 5 1
+Escherichia_1 5 36 52 7
+Escherichia_1 1 1 1 1 36 52 7 1
+Escherichia_1 1 1 1 36 52 9
+Escherichia_1 1 1 36 52 10
+Escherichia_1 1 36 52 11
+Escherichia_1 36 52 11 1
+Escherichia_1 24 11 52 11 1 1
+Escherichia_1 8 4 11 11 52 14
+Escherichia_1 4 3 4 11 11 52 14 1
+Escherichia_1 1 1 1 3 4 11 11 52 16
+Escherichia_1 1 1 3 4 11 11 52 17
+Escherichia_1 1 3 4 11 11 52 18
+Escherichia_1 3 4 11 11 52 19
+Escherichia_1 1 1 4 11 11 52 19 1
+Escherichia_1 1 4 11 11 52 21
+Escherichia_1 4 11 11 52 21 1
+Escherichia_1 3 11 11 52 21 1 1
+Escherichia_1 2 11 11 52 24
+Escherichia_1 1 11 11 52 24 1
+Escherichia_1 11 11 52 26
+Escherichia_1 2 1 1 1 1 4 11 52 27
+Escherichia_1 1 1 1 1 1 4 11 52 27 1
+Escherichia_1 1 1 1 1 4 11 52 29
+Escherichia_1 1 1 1 4 11 52 30
+Escherichia_1 1 1 4 11 52 31
+Escherichia_1 1 4 11 52 32
+Escherichia_1 4 11 52 32 1
+Escherichia_1 1 1 1 11 52 34
+Escherichia_1 1 1 11 52 35
+Escherichia_1 1 11 52 35 1
+Escherichia_1 11 52 37
+Escherichia_1 1 1 8 52 37 1
+Escherichia_1 1 8 52 39
+Escherichia_1 8 52 40
+Escherichia_1 1 6 52 41
+Escherichia_1 6 52 41 1
+Escherichia_1 1 4 52 43
+Escherichia_1 4 52 44
+Escherichia_1 1 1 1 52 45
+Escherichia_1 1 1 52 45 1
+Escherichia_1 1 52 47
+Escherichia_1 52 48
+Escherichia_1 16 35 48 1
+Escherichia_1 15 35 50
+Escherichia_1 3 6 5 35 51
+Escherichia_1 1 1 6 5 35 52
+Escherichia_1 1 6 5 35 53
+Escherichia_1 6 5 35 54
+Escherichia_1 1 2 1 1 5 35 55
+Escherichia_1 2 1 1 5 35 56
+Escherichia_1 1 1 1 5 35 57
+Escherichia_1 1 1 5 35 57 1
+Escherichia_1 1 5 35 59
+Escherichia_1 5 35 59 1
+Escherichia_1 1 2 1 35 61
+Escherichia_1 2 1 35 62
+Escherichia_1 1 1 35 63
+Escherichia_1 1 35 64
+Escherichia_1 35 65
+Escherichia_1 2 7 25 66
+Escherichia_1 1 7 25 67
+Escherichia_1 7 25 67 1
+Escherichia_1 1 1 4 25 67 1 1
+Escherichia_1 1 4 25 70
+Escherichia_1 4 25 71
+Escherichia_1 3 25 72
+Escherichia_1 2 25 72 1
+Escherichia_1 1 25 74
+Escherichia_1 25 75
+Escherichia_1 20 4 75 1
+Escherichia_1 4 3 7 1 4 4 75 1 1
+Escherichia_1 3 3 7 1 4 4 78
+Escherichia_1 1 1 3 7 1 4 4 78 1
+Escherichia_1 1 3 7 1 4 4 78 1 1
+Escherichia_1 3 7 1 4 4 81
+Escherichia_1 1 1 7 1 4 4 82
+Escherichia_1 1 7 1 4 4 83
+Escherichia_1 7 1 4 4 84
+Escherichia_1 1 5 1 4 4 85
+Escherichia_1 5 1 4 4 86
+Escherichia_1 3 1 1 4 4 87
+Escherichia_1 1 1 1 1 4 4 88
+Escherichia_1 1 1 1 4 4 89
+Escherichia_1 1 1 4 4 90
+Escherichia_1 1 4 4 91
+Escherichia_1 4 4 92
+Escherichia_1 1 2 4 93
+Escherichia_1 2 4 94
+Escherichia_1 1 4 95
+Escherichia_1 4 96
+Escherichia_1 3 96 1
+Escherichia_1 1 1 98
+Escherichia_1 1 99
+Escherichia_1 100
+Escherichia_1 10 10 54 26
+Escherichia_1 3 6 10 54 27
+Escherichia_1 1 1 6 10 54 27 1
+Escherichia_1 1 6 10 54 29
+Escherichia_1 6 10 54 30
+Escherichia_1 1 4 10 54 31
+Escherichia_1 4 10 54 31 1
+Escherichia_1 1 1 1 10 54 31 1 1
+Escherichia_1 1 1 10 54 31 3
+Escherichia_1 1 10 54 35
+Escherichia_1 10 54 36
+Escherichia_1 7 2 54 37
+Escherichia_1 1 5 2 54 38
+Escherichia_1 5 2 54 39
+Escherichia_1 1 1 1 1 2 54 39 1
+Escherichia_1 1 1 1 2 54 41
+Escherichia_1 1 1 2 54 42
+Escherichia_1 1 2 54 43
+Escherichia_1 2 54 44
+Escherichia_1 1 54 45
+Escherichia_1 54 46
+Escherichia_1 45 8 47
+Escherichia_1 1 8 3 32 8 47 1
+Escherichia_1 8 3 32 8 47 1 1
+Escherichia_1 2 5 3 32 8 50
+Escherichia_1 1 5 3 32 8 51
+Escherichia_1 5 3 32 8 52
+Escherichia_1 1 3 3 32 8 52 1
+Escherichia_1 3 3 32 8 54
+Escherichia_1 1 1 3 32 8 55
+Escherichia_1 1 3 32 8 56
+Escherichia_1 3 32 8 57
+Escherichia_1 2 32 8 58
+Escherichia_1 1 32 8 59
+Escherichia_1 32 8 59 1
+Escherichia_1 1 8 3 9 10 8 59 1 1
+Escherichia_1 8 3 9 10 8 62
+Escherichia_1 1 1 1 4 3 9 10 8 63
+Escherichia_1 1 1 4 3 9 10 8 64
+Escherichia_1 1 4 3 9 10 8 65
+Escherichia_1 4 3 9 10 8 65 1
+Escherichia_1 1 1 1 3 9 10 8 67
+Escherichia_1 1 1 3 9 10 8 67 1
+Escherichia_1 1 3 9 10 8 67 1 1
+Escherichia_1 3 9 10 8 70
+Escherichia_1 1 1 9 10 8 71
+Escherichia_1 1 9 10 8 72
+Escherichia_1 9 10 8 73
+Escherichia_1 7 1 10 8 74
+Escherichia_1 4 2 1 10 8 75
+Escherichia_1 1 2 2 1 10 8 75 1
+Escherichia_1 2 2 1 10 8 75 1 1
+Escherichia_1 1 2 1 10 8 75 1 1 1
+Escherichia_1 2 1 10 8 75 4
+Escherichia_1 1 1 10 8 75 5
+Escherichia_1 1 10 8 75 6
+Escherichia_1 10 8 75 6 1
+Escherichia_1 1 8 8 75 8
+Escherichia_1 8 8 75 8 1
+Escherichia_1 3 4 8 75 10
+Escherichia_1 1 1 4 8 75 10 1
+Escherichia_1 1 4 8 75 12
+Escherichia_1 4 8 75 12 1
+Escherichia_1 3 8 75 14
+Escherichia_1 2 8 75 15
+Escherichia_1 1 8 75 16
+Escherichia_1 8 75 17
+Escherichia_1 4 3 75 17 1
+Escherichia_1 1 1 1 3 75 19
+Escherichia_1 1 1 3 75 20
+Escherichia_1 1 3 75 21
+Escherichia_1 3 75 22
+Escherichia_1 1 1 75 23
+Escherichia_1 1 75 24
+Escherichia_1 75 24 1
+Escherichia_1 2 28 44 26
+Escherichia_1 1 28 44 27
+Escherichia_1 28 44 28
+Escherichia_1 17 10 44 29
+Escherichia_1 1 1 1 5 8 10 44 30
+Escherichia_1 1 1 5 8 10 44 31
+Escherichia_1 1 5 8 10 44 32
+Escherichia_1 5 8 10 44 33
+Escherichia_1 3 1 8 10 44 34
+Escherichia_1 1 1 1 8 10 44 35
+Escherichia_1 1 1 8 10 44 36
+Escherichia_1 1 8 10 44 37
+Escherichia_1 8 10 44 38
+Escherichia_1 1 1 1 1 3 10 44 39
+Escherichia_1 1 1 1 3 10 44 40
+Escherichia_1 1 1 3 10 44 41
+Escherichia_1 1 3 10 44 42
+Escherichia_1 3 10 44 43
+Escherichia_1 1 1 10 44 44
+Escherichia_1 1 10 44 45
+Escherichia_1 10 44 46
