@@ -7,7 +7,7 @@
     a) BASIC FINGERPRINT
         - METHOD   : basic_fingerprint  in SCRIPT lyn2vec.py
 
-        - CMD_LINE : python lyn2vec.py --type basic --path training/ --fasta transcripts_genes.fa --type_factorization ICFL_COMB -n 4 --rev_com true
+        - CMD_LINE : python lyn2vec.py --type basic --path training/ --fasta transcripts_genes.fa --type_factorization ICFL_COMB -n 4 --rev_comb true
 
         - RETURN   : given a FASTA file (.fa or .gz) computes for each type of factorization a "fingerprint" file containing
                      a row for each read, with the format "IDGENE FINGERPRINT", where "FINGERPRINT" is the fingerprint of
