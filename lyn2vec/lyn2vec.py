@@ -16,6 +16,8 @@ def basic_fingerprint(args):
     # Input FASTA file containing transcripts
     input_fasta = args.path + args.fasta
 
+    print(f"Used of rev_comb = {args.rev_comb}")
+
     # Extract of reads (Format = ID GENE read)
     read_lines = extract_reads(name_file=input_fasta, filter=args.filter, rev_com=args.rev_comb)
 

@@ -1134,16 +1134,16 @@ int calculateUnion(const std::vector<HashList>& largerSet, const std::vector<Has
     // Analizza le liste di largerSet
     for (const auto& list1 : largerSet) {
         
-        std::cout << "Analizzando list1 (largerSet): " << list1.toString() << std::endl;
+        //std::cout << "Analizzando list1 (largerSet): " << list1.toString() << std::endl;
         
         unionSize++;
         for (const auto& list2 : smallerSet) {
             
-            std::cout << "  Contro list2 (smallerSet): " << list2.toString() << std::endl;
+            //std::cout << "  Contro list2 (smallerSet): " << list2.toString() << std::endl;
 
             if (areHashListsSimilar(list1, list2)) {
                 foundIndices.insert(&list1 - &largerSet[0]);
-                std::cout << "    Trovata similarità di unione list1 e list2" << std::endl;
+                //std::cout << "    Trovata similarità di unione list1 e list2" << std::endl;
                 break;
             }
         }
@@ -1151,15 +1151,15 @@ int calculateUnion(const std::vector<HashList>& largerSet, const std::vector<Has
 
     // Analizza le liste di smallerSet
     for (const auto& list2 : smallerSet) {
-        std::cout << "Analizzando list2 (smallerSet): " << list2.toString() << std::endl;
+        //std::cout << "Analizzando list2 (smallerSet): " << list2.toString() << std::endl;
         bool foundSimilar = false;
         for (const auto& list1 : largerSet) {
-            std::cout << "  Contro list1 (largerSet): " << list1.toString() << std::endl;
+            //std::cout << "  Contro list1 (largerSet): " << list1.toString() << std::endl;
             if (areHashListsSimilar(list1, list2)) {
                 
                 foundSimilar = true;
                 
-                std::cout << "    Trovata similarità di unione list2 e list1" << std::endl;
+                //std::cout << "    Trovata similarità di unione list2 e list1" << std::endl;
                 
                 break;
             }
@@ -1168,11 +1168,11 @@ int calculateUnion(const std::vector<HashList>& largerSet, const std::vector<Has
 
             unionSize++;
             
-            std::cout << "    list2 non trovata in largerSet, aumentando l'unione." << std::endl;
+            //std::cout << "    list2 non trovata in largerSet, aumentando l'unione." << std::endl;
         }
     }
 
-    std::cout << "Size dell'Unione: " << unionSize << std::endl;
+    //std::cout << "Size dell'Unione: " << unionSize << std::endl;
     
     return unionSize;
 }
@@ -1188,18 +1188,18 @@ int calculateIntersection(const std::vector<HashList>& largerSet, const std::vec
     std::unordered_set<size_t> checkedIndices; // Indici di HashList già verificati in smallerSet
 
     for (const auto& list1 : largerSet) {
-        std::cout << "Analizzando list1: " << list1.toString() << std::endl;
+        //std::cout << "Analizzando list1: " << list1.toString() << std::endl;
         for (const auto& list2 : smallerSet) {
             size_t list2Index = &list2 - &smallerSet[0]; // Calcola l'indice di list2
             // Se abbiamo già verificato questo list2, salta al prossimo
             if (checkedIndices.find(list2Index) != checkedIndices.end()) {
-                std::cout << "    list2 già verificato: " << list2.toString() << std::endl;
+                //std::cout << "    list2 già verificato: " << list2.toString() << std::endl;
                 continue;
             }
 
-            std::cout << "  Contro list2: " << list2.toString() << std::endl;
+            //std::cout << "  Contro list2: " << list2.toString() << std::endl;
             if (areHashListsSimilar(list1, list2)) {
-                std::cout << "    Trovata similarità di intersezione tra list1 e list2" << std::endl;
+                //std::cout << "    Trovata similarità di intersezione tra list1 e list2" << std::endl;
                 intersectionSize++;
                 foundIndices.insert(&list1 - &largerSet[0]); // Aggiungi l'indice di list1
                 checkedIndices.insert(list2Index); // Aggiungi list2 all'insieme degli indici controllati
@@ -1374,7 +1374,7 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     }
 
     // Stampa della matrice
-    std::cout << "Matrice della Distanza di Levenshtein:\n";
+    /*std::cout << "Matrice della Distanza di Levenshtein:\n";
     std::cout << std::setw(8) << "";
     for (size_t j = 0; j <= n; ++j) {
         if (j > 0) {
@@ -1386,7 +1386,7 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
             std::cout << std::setw(10) << "-";
         }
     }
-    std::cout << "\n";
+    //std::cout << "\n";
     for (size_t i = 0; i <= m; ++i) {
         if (i > 0) {
             if (use64)
@@ -1401,9 +1401,9 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
             std::cout << std::setw(10) << matrix[i][j];
         }
         std::cout << "\n";
-    }
+    }*/
 
-    cout << "distanza minima: " << matrix[m][n] << endl;
+    //cout << "distanza minima: " << matrix[m][n] << endl;
     // La distanza finale si trova nell'ultima cella della matrice
     return matrix[m][n];
 }
@@ -1413,8 +1413,6 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
 
 bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
 
-
-
     int distance = distanceBetweenHashLists(list1, list2);
     
 
@@ -1422,7 +1420,7 @@ bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
     //int totalBits = std::max(list1.size(), list2.size()) * (tagUse64 ? 64 : 32);
     int max_size = max(list1.size(), list2.size());
     int maxThreshold = max_size *THRESHOLD; // % del totale dei bit, parte bassa
-    cout << "threshold da rispettare: " << maxThreshold << endl;
+    //cout << "threshold da rispettare: " << maxThreshold << endl;
 
     return distance <= maxThreshold;
 }

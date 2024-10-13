@@ -251,11 +251,8 @@ def read_gz(fasta_lines, rev_com='false'):
 
     return lines
 
-
 # Read file FASTA
 def read_fasta(fasta_lines, rev_com='false'):
-
-
     lines = []
     read = ''
     read_rc = ''
@@ -263,48 +260,38 @@ def read_fasta(fasta_lines, rev_com='false'):
 
     i = 1
     for s in fasta_lines:
-
-        # ID del gene e del transcript 
         if s[0] == '>':
             print(s.strip() + ": ID Letto " + str(i))
-            i=i+1
+            i += 1
 
             if read != '':
                 lines.append(read)
                 read = ''
 
-                if rev_com == 'false':
+                if rev_com == 'true':
                     lines.append(read_rc)
                     read_rc = ''
 
             s = s.replace('\n', '')
-
             s_list = s.split()
             
-            if rev_com == 'false':
-                read = s_list[1] + ' '
-
-            else:
+            if rev_com == 'true':
                 read = s_list[1] + '_0 '
                 read_rc = s_list[1] + '_1 '
+            else:
+                read = s_list[1] + ' '
 
         else:
-
             s = s.replace('\n', '')
-            if rev_com == 'false':
-                read += s
-
-            else:
-                read += s
-                read_rc += reverse_complement(s.replace('\n', ''))
+            read += s
+            if rev_com == 'true':
+                read_rc += reverse_complement(s)
 
     if read != '':
         lines.append(read)
-        read = ''
-
-        if rev_com == 'false':
+        if rev_com == 'true':
             lines.append(read_rc)
-            read_rc = ''
+    
     return lines
 
 
@@ -332,7 +319,7 @@ def extract_reads(name_file='fingerprint/ML/reads_150.fa', filter='list', n_for_
     if name_file.endswith('.gz'):
         # GZ FILE
         file = gzip.open(name_file, 'rb')
-        lines = read_gz(file.readlines(),rev_com)
+        lines = read_gz(file.readlines(), rev_com)
 
 
     elif name_file.endswith('.fa') or name_file.endswith('.fasta') or name_file.endswith('.fastq'):
