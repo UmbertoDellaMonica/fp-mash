@@ -65,3 +65,12 @@
 
 
 
+    e) SPLIT GENOME SEQUENCES IN FILE.FASTA TROUGH LONGEST AND MOST FREQUENT COMMON SEQUENCES 
+        - METHOD   : LMCFS in SCRIPT split_fasta_by_lmfcs.py
+
+        - CMD_LINE : python split_fasta_by_lmfcs.py --file1 file1.fasta --file2 file2.fasta --output substrings_frequencies.txt --min_length 4
+
+        - RETURN   : generates two new FASTA files with their sequences splitted based on their longest and most frequent subsequences while preserving their original ID
+
+
+
