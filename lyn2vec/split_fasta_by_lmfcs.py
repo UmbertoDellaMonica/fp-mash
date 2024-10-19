@@ -47,15 +47,28 @@ def find_all_common_substrings_with_frequencies(seq1, seq2, min_length):
     suffix_array = build_suffix_array(combined_seq)
     lcp = build_lcp(combined_seq, suffix_array)
     substrings_with_frequencies = []
+    seen_substrings = set()
+
     for i in range(1, len(combined_seq)):
         if (suffix_array[i] < s1_len) != (suffix_array[i - 1] < s1_len):
-            if lcp[i] >= min_length: # parametro da mettere da linea di comando
-                substring = combined_seq[suffix_array[i]:suffix_array[i] + lcp[i]]               
+            if lcp[i] >= min_length:
+                substring = combined_seq[suffix_array[i]:suffix_array[i] + lcp[i]]
+                if substring in seen_substrings:
+                    continue
+                seen_substrings.add(substring)
                 frequency1 = seq1.count(substring)
-                frequency2 = seq2.count(substring)               
+                frequency2 = seq2.count(substring)
                 substrings_with_frequencies.append((substring, frequency1, frequency2))
 
-    substrings_with_frequencies.sort(key=lambda x: (-len(x[0]), -(x[1] + x[2]), x[0]))
+    substrings_with_frequencies.sort(
+        key=lambda x: (
+            abs(x[1] - x[2]) > 3,      # Preferisci differenze di frequenza entro 3
+            -min(x[1], x[2]),          # Frequenza minima decrescente
+            abs(x[1] - x[2]),          # Differenza di frequenza crescente
+            -len(x[0]),                # Lunghezza decrescente
+            x[0]                       # Ordine alfabetico
+        )
+    )
     return substrings_with_frequencies
 
 def save_substrings_to_file(substrings_with_frequencies, output_file):
@@ -85,8 +98,8 @@ def read_fasta_sequence(file_path):
 
 
 def LMFCS(file1, file2, output_file, min_length):
-    seq1 = read_fasta_sequence("lcs_fasta/" + file1)
-    seq2 = read_fasta_sequence("lcs_fasta/" + file2)
+    seq1 = read_fasta_sequence(file1)
+    seq2 = read_fasta_sequence(file2)
 
     if seq1 is None or seq2 is None:
         print("Errore nel caricamento dei file.")
@@ -106,6 +119,7 @@ def LMFCS(file1, file2, output_file, min_length):
 def split_sequence(sequence, subseq):
     result = []
     start = 0
+    subseq_len = len(subseq)
     
     while True:
         index = sequence.find(subseq, start)
@@ -117,42 +131,57 @@ def split_sequence(sequence, subseq):
         if start != index:
             result.append(sequence[start:index])
         
-        start = index
-        result.append(sequence[start:])
-        break
-    
+
+        start = index  
+        
+
+        next_index = sequence.find(subseq, start + subseq_len)
+        
+        if next_index == -1:
+           
+            result.append(sequence[start:])
+            break
+        else:
+          
+            result.append(sequence[start:next_index])
+            start = next_index 
+
     return result
 
 
 
-def split_file(filename, substring):
+
+def split_file(filename, substring, num):
     if substring is None:
         print(f"Nessuna sottosequenza trovata per dividere {filename}.")
         return
-    # qui trova il file nella cartella lcs_fasta (cambiare questa?)
-    with open("lcs_fasta/" + filename, 'r') as f_in, open("lcs_fasta/splitted_" + filename, 'w') as f_out:
+   
+    with open(filename, 'r') as f_in, open("lcs_fasta/splitted_" + num + ".fasta", 'w') as f_out:
         current_id = None
         current_sequence = ""
 
         for line in f_in:
             line = line.strip()
             if line.startswith('>'):
+               
                 if current_id and current_sequence:
                     chunks = split_sequence(current_sequence, substring)
-                    for chunk in chunks:
-                        f_out.write(f"{current_id}\n")  
-                        f_out.write(f"{chunk}\n")  
-                current_id = line 
+                    for i, chunk in enumerate(chunks):
+                        if chunk:  
+                            f_out.write(f"{current_id}_part{i+1}\n")
+                            f_out.write(f"{chunk}\n")
+                current_id = line  
                 current_sequence = ""  
             else:
                 current_sequence += line  
 
-        
+       
         if current_id and current_sequence:
             chunks = split_sequence(current_sequence, substring)
-            for chunk in chunks:
-                f_out.write(f"{current_id}\n")
-                f_out.write(f"{chunk}\n")
+            for i, chunk in enumerate(chunks):
+                if chunk:
+                    f_out.write(f"{current_id}_part{i+1}\n")
+                    f_out.write(f"{chunk}\n")
 
 
 if __name__ == '__main__':
@@ -174,8 +203,8 @@ if __name__ == '__main__':
 
     substring = LMFCS(file1, file2, output_file, min_length)
 
-    split_file(file1, substring)
-    split_file(file2, substring)
+    split_file(file1, substring,"1")
+    split_file(file2, substring,"2")
 
 
 
