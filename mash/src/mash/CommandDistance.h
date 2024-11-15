@@ -148,6 +148,7 @@ public:
     int run() const; // override
 
     int runFingerPrint() const;
+    int runFingerPrintSorted() const;
     
 private:
     

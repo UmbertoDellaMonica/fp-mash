@@ -180,6 +180,7 @@ public:
      * initFromFingerprints - Ogni riferimento ha un insieme di vettori di HashList 
      */
     void initFromFingerprints(const std::vector<std::string> & files, const Parameters & parametersNew);
+    void initFromFingerprintsSorted(const std::vector<std::string> & files, const Parameters & parametersNew);
 
     void getAlphabetAsString(std::string & alphabet) const; // Esiste 
 

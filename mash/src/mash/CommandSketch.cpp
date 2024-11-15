@@ -31,6 +31,7 @@ CommandSketch::CommandSketch() : Command() {
     addOption("comment", Option(Option::File, "C", "Sketch", "Comment for a sketch of reads (instead of first sequence comment).", ""));
     addOption("counts", Option(Option::Boolean, "M", "Sketch", "Store multiplicity of each k-mer in each sketch.", ""));
     addOption("fingerprint", Option(Option::Boolean, "fp", "Input", "Indicates that the input files are fingerprints instead of sequences.", "")); // Opzione Fingerprint!
+    addOption("mash-ver", Option(Option::Boolean, "ms", "Input", "Sketch files contains only the first 1000 sorted vectors of fingerprints, simulating Mash algorithm on genomes. It only works if -fp is used.", "")); 
     useSketchOptions();
 }
 
@@ -43,11 +44,17 @@ int CommandSketch::run() const {
 
     // Recupera il valore della Fingerprint -fp nel caso questa è attiva   
     bool fingerprint = options.at("fingerprint").active; 
+    bool sorting = options.at("mash-ver").active;
+
+
+    if(fingerprint && sorting){
+        return runFingerPrintSorted();
+    }
 
     /**
      * Se fingerPrint è attivo viene eseguita una funzione totalmente diversa 
      */
-    if(fingerprint){
+    if(fingerprint && !sorting){
         return runFingerPrint();
     }
 
@@ -164,6 +171,74 @@ int CommandSketch::runFingerPrint() const {
 
     // Inizializzo il file di SketchFingerPrint
     sketchFingerPrint.initFromFingerprints(files, parametersFingerprint); // Nuova funzione per fingerprint
+
+    // Recupera l'opzione "id" e se attiva la mette all'interno dello sketch 
+    if (getOption("id").active)
+    {
+        sketchFingerPrint.setReferenceName(0, getOption("id").argument);
+    }
+    // Recupera l'opzione "comment" e se attiva la mette all'interno dello sketch 
+    if (getOption("comment").active)
+    {
+        sketchFingerPrint.setReferenceComment(0, getOption("comment").argument);
+    }
+
+    // Analyze Reference Lengths - settaggio delle impostazioni della reference 
+    analyzeReferenceLengths(sketchFingerPrint, Sketch(), parametersFingerprint.warning, lengthMax, lengthMaxName, warningCount, randomChance, kMin, true );
+
+    // Determina il prefisso e il suffisso del file 
+    std::string prefix = determinePrefixAndSuffix(arguments[0], true, parametersFingerprint, Sketch::Parameters());
+
+    // Effettua la scrittura del file per l'Indicizzazione di Capnp
+    sketchFingerPrint.writeToCapnpFingerPrint(prefix.c_str());
+
+    // Applicazione di WarnKMerFingerPrint 
+    /*if ( warningCount > 0 && ! parametersFingerprint.reads )
+    {
+    	warnKmerFingerPrintSize(parametersFingerprint, *this, lengthMax, lengthMaxName, randomChance, kMin, warningCount);
+    }*/
+
+    return 0; 
+}
+
+int CommandSketch::runFingerPrintSorted() const {
+
+    cout << "I'm Here ! " << "... in sketch fingerprint sorted" << endl;
+
+    int verbosity = 1; // options.at("silent").active ? 0 : options.at("verbose").active ? 2 : 1;
+    
+
+    bool list = options.at("list").active;
+
+    // Instanzio l'oggetto dei parametri della fingerprint 
+    SketchFingerPrint::Parameters parametersFingerprint;
+    // Attivo l'opzione del parametro "counts"
+    parametersFingerprint.counts = options.at("counts").active;
+    
+    // Inizializza i parametri della fingerprint
+    if (sketchParameterFingerPrintSetup(parametersFingerprint, *(Command *)this))
+    {
+        return 1;
+    }
+
+
+    std::vector<std::string> files;
+    // Inserisco nel vettore tutti i file che devo 
+    populateFiles(files, list);
+
+    // Dichiaro l'oggetto - SketchFingerPrint
+    SketchFingerPrint sketchFingerPrint;
+
+    // Settings Reference 
+    uint64_t lengthMax;
+    double randomChance;
+    int kMin;
+    string lengthMaxName;
+    int warningCount = 0;
+
+
+    // Inizializzo il file di SketchFingerPrint
+    sketchFingerPrint.initFromFingerprintsSorted(files, parametersFingerprint); // Nuova funzione per fingerprint
 
     // Recupera l'opzione "id" e se attiva la mette all'interno dello sketch 
     if (getOption("id").active)

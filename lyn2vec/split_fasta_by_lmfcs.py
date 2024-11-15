@@ -13,7 +13,9 @@
         # CAPIRE IL TIPO DI FREQUENZA PREFERIBILE PER LA FATTORIZZAZIONE
 # EFFETTUARE LO SPLIT DEI DUE FILE ORIGINALI TROVANDO LA SEQUENZA 
 # SPLITTARE DAL SUO INIZIO AGGIUNGENDO A CAPO RIGA DI ID E POI A CAPO LA NUOVA SEQUENZA
-# FARE IL COMANDO DA CONSOLE 
+
+
+# modifica linea 56: adesso prende tutte le sottosequenza di quella data lunghezza e non le maggiori uguali
 
 
 #APPROCCIO CON SUFFIX ARRAY
@@ -41,7 +43,7 @@ def build_lcp(s, suffix_array):
                 h -= 1
     return lcp
 
-def find_all_common_substrings_with_frequencies(seq1, seq2, min_length):
+def find_all_common_substrings_with_frequencies(seq1, seq2, length):
     combined_seq = seq1 + '#' + seq2 + '$'
     s1_len = len(seq1)
     suffix_array = build_suffix_array(combined_seq)
@@ -51,7 +53,7 @@ def find_all_common_substrings_with_frequencies(seq1, seq2, min_length):
 
     for i in range(1, len(combined_seq)):
         if (suffix_array[i] < s1_len) != (suffix_array[i - 1] < s1_len):
-            if lcp[i] >= min_length:
+            if lcp[i] == length:
                 substring = combined_seq[suffix_array[i]:suffix_array[i] + lcp[i]]
                 if substring in seen_substrings:
                     continue
@@ -62,14 +64,15 @@ def find_all_common_substrings_with_frequencies(seq1, seq2, min_length):
 
     substrings_with_frequencies.sort(
         key=lambda x: (
-            abs(x[1] - x[2]) > 3,      # Preferisci differenze di frequenza entro 3
-            -min(x[1], x[2]),          # Frequenza minima decrescente
-            abs(x[1] - x[2]),          # Differenza di frequenza crescente
-            -len(x[0]),                # Lunghezza decrescente
-            x[0]                       # Ordine alfabetico
+            x[1] != x[2],              
+            -min(x[1], x[2]),          
+            abs(x[1] - x[2]),          
+            -len(x[0]),                
+            x[0]                       
         )
     )
     return substrings_with_frequencies
+
 
 def save_substrings_to_file(substrings_with_frequencies, output_file):
     try:
@@ -97,7 +100,7 @@ def read_fasta_sequence(file_path):
         return None
 
 
-def LMFCS(file1, file2, output_file, min_length):
+def LMFCS(file1, file2, output_file, length):
     seq1 = read_fasta_sequence(file1)
     seq2 = read_fasta_sequence(file2)
 
@@ -105,7 +108,7 @@ def LMFCS(file1, file2, output_file, min_length):
         print("Errore nel caricamento dei file.")
         return None
 
-    substrings_with_frequencies = find_all_common_substrings_with_frequencies(seq1, seq2, min_length)
+    substrings_with_frequencies = find_all_common_substrings_with_frequencies(seq1, seq2, length)
     save_substrings_to_file(substrings_with_frequencies, output_file)
 
     if substrings_with_frequencies:
@@ -156,7 +159,7 @@ def split_file(filename, substring, num):
         print(f"Nessuna sottosequenza trovata per dividere {filename}.")
         return
    
-    with open(filename, 'r') as f_in, open("lcs_fasta/splitted_" + num + ".fasta", 'w') as f_out:
+    with open(filename, 'r') as f_in, open("lmfcs_fasta/splitted_" + num + ".fasta", 'w') as f_out:
         current_id = None
         current_sequence = ""
 
@@ -191,17 +194,17 @@ if __name__ == '__main__':
     parser.add_argument('--file1', required = True)
     parser.add_argument('--file2', required = True)
     parser.add_argument('--output', required = False, default="substrings_frequencies.txt")
-    parser.add_argument('--min_length', type=int)
+    parser.add_argument('--length', type=int)
 
     args = parser.parse_args()
 
     file1 = args.file1
     file2 = args.file2
-    output_file = "lcs_fasta/" + args.output
-    min_length = args.min_length
+    output_file = "lmfcs_fasta/" + args.output
+    length = args.length
 
 
-    substring = LMFCS(file1, file2, output_file, min_length)
+    substring = LMFCS(file1, file2, output_file, length)
 
     split_file(file1, substring,"1")
     split_file(file2, substring,"2")

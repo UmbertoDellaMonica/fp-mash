@@ -4,7 +4,7 @@
 //
 // See the LICENSE.txt file included with this software for license information.
 
-#include "SketchFingerprint.h"
+#include "SketchFingerPrint.h"
 #include <unistd.h>
 #include <zlib.h>
 #include <stdio.h>
@@ -31,6 +31,7 @@
 #include <sstream>
 #include <numeric>
 #include "hash.h"
+#include <algorithm> 
 
 
 
@@ -236,6 +237,139 @@ void SketchFingerPrint::initFromFingerprints(const vector<string> &files, const 
     createIndexFingerPrint();
     cout << "Initialization complete." << endl;
 }
+
+
+void SketchFingerPrint::initFromFingerprintsSorted(const vector<string> &files, const Parameters &parametersNew)
+{
+
+    cout << "sono nell'init fingerprint sorted"<< endl;
+    parameters = parametersNew;
+    int counterLine = 0;
+    robin_hood::unordered_set<string> processedIDs;
+    string lastID = "";
+    cout << "Initializing from fingerprints..." << endl;
+
+    for (const string &file : files)
+    {
+        cout << "Processing file: " << file << endl;
+        ifstream inputFile(file);
+        if (!inputFile)
+        {
+            cerr << "ERROR: Could not open fingerprint file " << file << " for reading." << endl;
+            exit(1);
+        }
+
+        string line;
+        Reference* currentReference = nullptr;
+
+        while (getline(inputFile, line) && counterLine < LIMIT_READ_FINGERPRINT)
+        {
+            counterLine++;
+            vector<uint64_t> fingerprint;
+            istringstream ss(line);
+            uint64_t number;
+            string id;
+            ss >> id;
+
+            while (ss >> number)
+            {
+                fingerprint.push_back(number);
+                if (ss.peek() == ' ') ss.ignore();
+            }
+
+            // Se l'ID è nuovo, crea una nuova reference
+            if (id != lastID)
+            {
+                if (currentReference != nullptr)
+                {
+                    references.push_back(*currentReference);
+                    delete currentReference;
+                }
+
+                currentReference = new Reference;
+                currentReference->id = id;
+                currentReference->name = id;
+                currentReference->comment = "FingerPrint : " + currentReference->id;
+                currentReference->use64 = true;
+                lastID = id;
+            }
+
+            // Calcola hash e inserisci solo valori diversi da 0
+            HashList hashListSubSketch;
+            for (uint64_t num : fingerprint)
+            {
+                hash_u hash = getHashNumber(&num, sizeof(uint64_t), parameters.seed, parameters.use64);
+                if (hash.hash64 != 0) // Aggiungi solo hash non nulli
+                {
+                    hashListSubSketch.add(hash);
+                }
+            }
+
+            // Simula Mash: ordina i subsketch e prendi al massimo 1000 di loro
+
+            currentReference->subSketch_list.push_back(hashListSubSketch);
+            currentReference->length += 1;
+
+            
+        }
+    
+        //sort delle subliste (non so perchè continua ad essere lessicografico e non numerico)
+       std::sort(currentReference->subSketch_list.begin(), currentReference->subSketch_list.end(),
+    [](const HashList& a, const HashList& b) {
+       
+        int minSize = std::min(a.size(), b.size());
+
+    
+        for (int i = 0; i < minSize; ++i) {
+            if (a.at(i).hash64 != b.at(i).hash64) {
+               
+                return a.at(i).hash64 < b.at(i).hash64;
+            }
+        }
+        return a.size() < b.size();
+    });
+
+        // resize con MinHashesPerWindow (prova prima per 10)
+
+        cout << "size prima:" <<  currentReference->subSketch_list.size()<< endl;
+
+       if(currentReference->subSketch_list.size() > parameters.minHashesPerWindow){
+            currentReference->subSketch_list.resize(parameters.minHashesPerWindow);
+        }
+
+    /*
+        if(currentReference->subSketch_list.size() > 10){
+            currentReference->subSketch_list.resize(10);
+        } */
+
+        cout << "size dopo:" <<  currentReference->subSketch_list.size()<< endl;
+
+
+        // stampa dei subsketch  
+
+        cout << "dopo il sort" << endl;
+        for(int i=0; i < currentReference->subSketch_list.size(); ++i){
+            HashList sublista = currentReference->subSketch_list[i];
+            cout << "sublista "<< i << " ";
+            for(int j =0; j < sublista.size(); ++j){
+                cout << sublista.at(j).hash64 << " "; 
+            }
+            cout << endl; 
+        }
+
+
+        if (currentReference != nullptr)
+        {
+            references.push_back(*currentReference);
+            delete currentReference;
+        }
+    }
+
+    createIndexFingerPrint();
+    cout << "Initialization complete." << endl;
+    cout << "Sono nel sorted" << endl;
+}
+
 
 
 int SketchFingerPrint::getMinKmerSize(uint64_t reference) const

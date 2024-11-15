@@ -9,6 +9,9 @@
 #include <math.h>
 #include <unordered_set>
 #include <iomanip>
+#include <vector>
+#include <stdexcept>
+#include <algorithm>
 
 
 #ifdef USE_BOOST
@@ -42,6 +45,7 @@ CommandDistance::CommandDistance()
     addOption("fingerprint", Option(Option::Boolean, "fp", "Input", "Indicates that the input files are fingerprints instead of sequences.", "")); // Aggiunto
     addOption("exact-similarity", Option(Option::Boolean, "es", "Input", "Indicates which algorithm use to calculate the similarity of Jaccard. - 1) Calculate Exactly Jaccard Similarity ", "")); // Aggiunto
     addOption("percentage-similarity", Option(Option::Boolean, "ps", "Input", "Indicates which algorithm use to calculate the similarity of Jaccard. Calculate Percentage Jaccard Similarity   ", "")); // Aggiunto
+    addOption("mash-ver", Option(Option::Boolean, "ms", "Input", "Sketch files contains only the first 1000 sorted vectors of fingerprints, simulating Mash algorithm on genomes. It only works if -fp is used.", "")); 
     useSketchOptions();
 }
 
@@ -50,8 +54,15 @@ int CommandDistance::run() const
 
 
     bool fingerprint = options.at("fingerprint").active; // Nuova opzione
+    bool sorting = options.at("mash-ver").active;
 
-    if(fingerprint){
+
+
+    if(fingerprint && sorting){
+        return runFingerPrintSorted();
+    }
+
+    if(fingerprint && !sorting){
         return runFingerPrint();
     }
 
@@ -533,6 +544,318 @@ int CommandDistance::runFingerPrint() const{
     else if (tagTXT)
     {
         sketchFingerPrintQuery.initFromFingerprints(queryFiles, parameters); // Nuova funzione per fingerprint
+    }
+    
+    uint64_t pairCount = sketchFingerPrintRef.getReferenceCount() * sketchFingerPrintQuery.getReferenceCount();
+
+    uint64_t pairsPerThread = pairCount / parameters.parallelism;
+    
+    if ( pairsPerThread == 0 )
+    {
+    	pairsPerThread = 1;
+    }
+    
+    static uint64_t maxPairsPerThread = 0x1000;
+    
+    if ( pairsPerThread > maxPairsPerThread )
+    {
+        pairsPerThread = maxPairsPerThread;
+    }
+    
+    uint64_t iFloor = pairsPerThread / sketchFingerPrintRef.getReferenceCount();
+    uint64_t iMod = pairsPerThread % sketchFingerPrintRef.getReferenceCount();
+    
+    for ( uint64_t i = 0, j = 0; i < sketchFingerPrintQuery.getReferenceCount(); i += iFloor, j += iMod )
+    {
+        if ( j >= sketchFingerPrintRef.getReferenceCount() )
+        {
+            if ( i == sketchFingerPrintQuery.getReferenceCount() - 1 )
+            {
+                break;
+            }
+            
+            i++;
+            j -= sketchFingerPrintRef.getReferenceCount();
+        }
+        
+        threadPool.runWhenThreadAvailable(new CompareFingerPrintInput(sketchFingerPrintRef, sketchFingerPrintQuery, j, i, pairsPerThread, parameters, distanceMax, pValueMax));
+        
+        while ( threadPool.outputAvailable() )
+        {
+            writeFingerPrintOutput(threadPool.popOutputWhenAvailable(), table, comment);
+        }
+    }
+    
+    while ( threadPool.running() )
+    {
+        writeFingerPrintOutput(threadPool.popOutputWhenAvailable(), table, comment);
+    }
+    
+    if ( warningCount > 0 && ! parameters.reads )
+    {
+    	warnKmerFingerPrintSize(parameters, *this, lengthMax, lengthMaxName, randomChance, kMin, warningCount);
+    }
+
+    }
+    
+    
+    return 0; 
+}
+
+//ADDED SORTED VERSION
+int CommandDistance::runFingerPrintSorted() const{
+
+    if ( arguments.size() < 2 || options.at("help").active )
+    {
+        print();
+        return 0;
+    }
+    
+    int threads = options.at("threads").getArgumentAsNumber();
+    bool list = options.at("list").active;
+    bool table = options.at("table").active;
+    bool comment = options.at("comment").active;
+    double pValueMax = options.at("pvalue").getArgumentAsNumber();
+    double distanceMax = options.at("distance").getArgumentAsNumber();
+
+
+
+    SketchFingerPrint::Parameters parameters;
+
+    if ( sketchParameterFingerPrintSetup(parameters, *(Command *)this) )
+    {
+    	return 1;
+    }
+
+    SketchFingerPrint sketchFingerPrintRef;
+    
+    uint64_t lengthMax;
+    double randomChance;
+    int kMin;
+    string lengthMaxName;
+    int warningCount = 0;
+    
+    const string & fileReference = arguments[0];
+    
+    bool isSketch = hasSuffixFingerPrint(fileReference, suffixSketch);
+    
+    if ( isSketch )
+    {
+        if ( options.at("kmer").active )
+        {
+            cerr << "ERROR: The option -" << options.at("kmer").identifier << " cannot be used when a sketch is provided; it is inherited from the sketch." << endl;
+            return 1;
+        }
+        
+        if ( options.at("noncanonical").active )
+        {
+            cerr << "ERROR: The option -" << options.at("noncanonical").identifier << " cannot be used when a sketch is provided; it is inherited from the sketch." << endl;
+            return 1;
+        }
+        
+        if ( options.at("protein").active )
+        {
+            cerr << "ERROR: The option -" << options.at("protein").identifier << " cannot be used when a sketch is provided; it is inherited from the sketch." << endl;
+            return 1;
+        }
+        
+        if ( options.at("alphabet").active )
+        {
+            cerr << "ERROR: The option -" << options.at("alphabet").identifier << " cannot be used when a sketch is provided; it is inherited from the sketch." << endl;
+            return 1;
+        }
+    }
+    else
+    {
+        cerr << "Sketching " << fileReference << " (provide sketch file made with \"mash sketch\" to skip)...";
+    }
+    
+    vector<string> refArgVector;
+    refArgVector.push_back(fileReference);
+
+     
+    bool tagMSH = containsMSH(refArgVector);
+    bool tagTXT = containsTXT(refArgVector);
+
+    if(tagMSH){
+
+        sketchFingerPrintRef.initFromFingerPrintFiles(refArgVector, parameters); // Nuova funzione per fingerprint
+
+    }
+    else if (tagTXT)
+    {
+        sketchFingerPrintRef.initFromFingerprintsSorted(refArgVector, parameters); // Nuova funzione per fingerprint
+    }
+    
+    double lengthThreshold = (parameters.warning * sketchFingerPrintRef.getKmerSpace()) / (1. - parameters.warning);
+    
+    if ( isSketch )
+    {
+        if ( options.at("sketchSize").active )
+        {
+            if ( parameters.reads && parameters.minHashesPerWindow != sketchFingerPrintRef.getMinHashesPerWindow() )
+            {
+                cerr << "ERROR: The sketch size must match the reference when using a bloom filter (leave this option out to inherit from the reference sketch)." << endl;
+                return 1;
+            }
+        }
+        
+        parameters.minHashesPerWindow = sketchFingerPrintRef.getMinHashesPerWindow();
+        parameters.kmerSize = sketchFingerPrintRef.getKmerSize();
+        parameters.noncanonical = sketchFingerPrintRef.getNoncanonical();
+        parameters.preserveCase = sketchFingerPrintRef.getPreserveCase();
+        parameters.seed = sketchFingerPrintRef.getHashSeed();
+        
+        string alphabet;
+        sketchFingerPrintRef.getAlphabetAsString(alphabet);
+        setAlphabetFingerPrintFromString(parameters, alphabet.c_str());
+    }
+    else
+    {
+        for ( uint64_t i = 0; i < sketchFingerPrintRef.getReferenceCount(); i++ )
+        {
+            uint64_t length = sketchFingerPrintRef.getReference(i).subSketch_list.size();
+        
+            if ( length > lengthThreshold )
+            {
+                if ( warningCount == 0 || length > lengthMax )
+                {
+                    lengthMax = length;
+                    lengthMaxName = sketchFingerPrintRef.getReference(i).name;
+                    randomChance = sketchFingerPrintRef.getRandomKmerChance(i);
+                    kMin = sketchFingerPrintRef.getMinKmerSize(i);
+                }
+            
+                warningCount++;
+            }
+        }
+    
+        cerr << "done.\n";
+    }
+    
+    if ( table )
+    {
+        cout << "#query";
+        
+        for ( int i = 0; i < sketchFingerPrintRef.getReferenceCount(); i++ )
+        {
+            cout << '\t' << sketchFingerPrintRef.getReference(i).name;
+        }
+        
+        cout << endl;
+    }
+    
+    bool method_exact = options.at("exact-similarity").active;
+    if(method_exact){
+        cout<< "Sono qua Metodo 1!"<< endl;
+    
+    ThreadPool<CompareFingerPrintInput, CompareFingerPrintOutput> threadPool(compareFingerPrintExcatSimilarity, threads);
+    vector<string> queryFiles;
+
+    for ( int i = 1; i < arguments.size(); i++ )
+    {
+        if ( list )
+        {
+            splitFile(arguments[i], queryFiles);
+        }
+        else
+        {
+            queryFiles.push_back(arguments[i]);
+        }
+    }
+    
+    SketchFingerPrint sketchFingerPrintQuery;
+    
+
+    // Applico lo stesso ragionamento fatto in precedenza 
+    if(tagMSH){
+
+        sketchFingerPrintQuery.initFromFingerPrintFiles(queryFiles, parameters); // Nuova funzione per fingerprint
+    }
+    else if (tagTXT)
+    {
+        sketchFingerPrintQuery.initFromFingerprintsSorted(queryFiles, parameters); // Nuova funzione per fingerprint
+    }
+    
+    uint64_t pairCount = sketchFingerPrintRef.getReferenceCount() * sketchFingerPrintQuery.getReferenceCount();
+
+    uint64_t pairsPerThread = pairCount / parameters.parallelism;
+    
+    if ( pairsPerThread == 0 )
+    {
+    	pairsPerThread = 1;
+    }
+    
+    static uint64_t maxPairsPerThread = 0x1000;
+    
+    if ( pairsPerThread > maxPairsPerThread )
+    {
+        pairsPerThread = maxPairsPerThread;
+    }
+    
+    uint64_t iFloor = pairsPerThread / sketchFingerPrintRef.getReferenceCount();
+    uint64_t iMod = pairsPerThread % sketchFingerPrintRef.getReferenceCount();
+    
+    for ( uint64_t i = 0, j = 0; i < sketchFingerPrintQuery.getReferenceCount(); i += iFloor, j += iMod )
+    {
+        if ( j >= sketchFingerPrintRef.getReferenceCount() )
+        {
+            if ( i == sketchFingerPrintQuery.getReferenceCount() - 1 )
+            {
+                break;
+            }
+            
+            i++;
+            j -= sketchFingerPrintRef.getReferenceCount();
+        }
+        
+        threadPool.runWhenThreadAvailable(new CompareFingerPrintInput(sketchFingerPrintRef, sketchFingerPrintQuery, j, i, pairsPerThread, parameters, distanceMax, pValueMax));
+        
+        while ( threadPool.outputAvailable() )
+        {
+            writeFingerPrintOutput(threadPool.popOutputWhenAvailable(), table, comment);
+        }
+    }
+    
+    while ( threadPool.running() )
+    {
+        writeFingerPrintOutput(threadPool.popOutputWhenAvailable(), table, comment);
+    }
+    
+    if ( warningCount > 0 && ! parameters.reads )
+    {
+    	warnKmerFingerPrintSize(parameters, *this, lengthMax, lengthMaxName, randomChance, kMin, warningCount);
+    }
+
+    }else{
+
+
+        ThreadPool<CompareFingerPrintInput, CompareFingerPrintOutput> threadPool(compareFingerPrintWithPercentageSimilarity, threads);
+        vector<string> queryFiles;
+    
+    for ( int i = 1; i < arguments.size(); i++ )
+    {
+        if ( list )
+        {
+            splitFile(arguments[i], queryFiles);
+        }
+        else
+        {
+            queryFiles.push_back(arguments[i]);
+        }
+    }
+    
+    SketchFingerPrint sketchFingerPrintQuery;
+    
+
+    // Applico lo stesso ragionamento fatto in precedenza 
+    if(tagMSH){
+
+        sketchFingerPrintQuery.initFromFingerPrintFiles(queryFiles, parameters); // Nuova funzione per fingerprint
+    }
+    else if (tagTXT)
+    {
+        sketchFingerPrintQuery.initFromFingerprintsSorted(queryFiles, parameters); // Nuova funzione per fingerprint
     }
     
     uint64_t pairCount = sketchFingerPrintRef.getReferenceCount() * sketchFingerPrintQuery.getReferenceCount();
@@ -1224,32 +1547,35 @@ int hashEquals32(uint32_t hash1, uint32_t hash2, int hashSize) {
     return (hash1 == hash2) ? 0 : hashSize;
 }
 
-/* calcolo dove avviene la funzione di calcolo di Hamming Distance
+/* calcolo dove avviene la funzione di calcolo di Hamming Distance*/
 /*
 int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
-    // Calcola la distanza totale tra due HashList
     int totalDistance = 0;
     size_t minSize = std::min(list1.size(), list2.size());
 
-    // Determina se entrambe le liste utilizzano hash a 64 bit
+    
     bool tagUse64 = list1.get64() && list2.get64();
     if (list1.get64() != list2.get64()) {
         throw std::invalid_argument("Both HashLists must use the same hash size (either 64-bit or 32-bit).");
     }
-    int hashSize = tagUse64 ? 64 : 32; // Dimensione dell'hash
 
-    // Calcola la distanza per i primi minSize elementi
+
     for (size_t i = 0; i < minSize; ++i) {
-        totalDistance += tagUse64 ? hashEquals64(list1.at(i).hash64, list2.at(i).hash64, hashSize)
-                                  : hashEquals32(list1.at(i).hash32, list2.at(i).hash32, hashSize);
+        if (tagUse64) {
+            if (list1.at(i).hash64 != list2.at(i).hash64)
+                totalDistance += 1;
+        } else {
+            if (list1.at(i).hash32 != list2.at(i).hash32)
+                totalDistance += 1;
+        }
     }
 
-    // Calcola la distanza per gli elementi rimanenti
+   
     size_t remainingElements = std::max(list1.size(), list2.size()) - minSize;
-    totalDistance += remainingElements * hashSize;
+    totalDistance += remainingElements;
 
-    return totalDistance; // Restituisce la distanza totale
-
+   // std::cout << "Total distance: " << totalDistance << std::endl;
+    return totalDistance;
 }
 */
 
@@ -1325,17 +1651,13 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
 
 
 //FUNZIONE DI DISTANZA TRA VETTORI CON DISTANZA DI EDIT
-#include "HashList.h"
-#include <vector>
-#include <stdexcept>
-#include <algorithm>
+
 
 // Funzione per calcolare la distanza di Levenshtein tra due HashList
 int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     size_t m = list1.size();
     size_t n = list2.size();
 
-    // Verifica se entrambe le liste utilizzano hash a 64 bit o 32 bit
     bool use64 = list1.get64() && list2.get64();
     if (list1.get64() != list2.get64()) {
         throw std::invalid_argument("Both HashLists must use the same hash size (either 64-bit or 32-bit).");
@@ -1357,10 +1679,10 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
         for (size_t j = 1; j <= n; ++j) {
             int cost;
             if (use64) {
-                // Confronta hash a 64 bit
+                
                 cost = (list1.at(i - 1).hash64 == list2.at(j - 1).hash64) ? 0 : 1;
             } else {
-                // Confronta hash a 32 bit
+               
                 cost = (list1.at(i - 1).hash32 == list2.at(j - 1).hash32) ? 0 : 1;
             }
 
@@ -1374,7 +1696,8 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     }
 
     // Stampa della matrice
-    /*std::cout << "Matrice della Distanza di Levenshtein:\n";
+    /*
+    std::cout << "Matrice della Distanza di Levenshtein:\n";
     std::cout << std::setw(8) << "";
     for (size_t j = 0; j <= n; ++j) {
         if (j > 0) {
@@ -1402,9 +1725,9 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
         }
         std::cout << "\n";
     }*/
-
-    //cout << "distanza minima: " << matrix[m][n] << endl;
     // La distanza finale si trova nell'ultima cella della matrice
+
+
     return matrix[m][n];
 }
 
@@ -1420,7 +1743,9 @@ bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
     //int totalBits = std::max(list1.size(), list2.size()) * (tagUse64 ? 64 : 32);
     int max_size = max(list1.size(), list2.size());
     int maxThreshold = max_size *THRESHOLD; // % del totale dei bit, parte bassa
-    //cout << "threshold da rispettare: " << maxThreshold << endl;
+   // cout << "threshold da rispettare: " << maxThreshold << endl;
+    //cout << "hamming distance calcolata: " << distance << endl;
+
 
     return distance <= maxThreshold;
 }

@@ -23,6 +23,8 @@ public:
 
     int runFingerPrint() const;
 
+    int runFingerPrintSorted() const;
+
     
 
 private:
