@@ -13,4 +13,5 @@ test/genomes.json
 test/genomes.msh
 test/reads.json
 test/reads.msh
-../dsk
+dsk/
+lynvec/
