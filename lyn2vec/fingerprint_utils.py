@@ -162,7 +162,8 @@ def read_long_fasta(fasta_lines):
 # For each read consider the following sequences:
 #   1) ID 1 original_sequence
 #   2) ID 0 R&C_sequence (only if rev_com==true)
-def read_long_fasta_2_steps(fasta_lines, rev_com):
+
+#def read_long_fasta_2_steps(fasta_lines, rev_com):
     lines = []
     read_original = ''
     read_rc = ''
@@ -198,8 +199,42 @@ def read_long_fasta_2_steps(fasta_lines, rev_com):
         if i == len(fasta_lines):
             break
 
-    return lines
+    return lines 
 
+
+def read_long_fasta_2_steps(fasta_lines, rev_com):
+    lines = []
+    read_original = ''
+    read_rc = ''
+
+    i = 0
+    while i < len(fasta_lines) - 1:  # Assicurati che ci siano almeno due elementi rimanenti
+        # ID_GENE
+        l_1 = str(fasta_lines[i])
+        l_1 = l_1.replace('>', '').strip()  # Rimuove '>' e '\n'
+        id_gene = l_1
+
+        if rev_com == 'true':
+            read_original = f"{id_gene}_0 "
+            read_rc = f"{id_gene}_1 "
+        else:
+            read_original = f"{id_gene} "
+
+        # Assicurati che i + 1 sia un indice valido
+        l_2 = str(fasta_lines[i + 1]).strip()
+        read_original += l_2
+        lines.append(read_original)
+
+        if rev_com == 'true':
+            read_rc += reverse_complement(l_2)
+            lines.append(read_rc)
+
+        read_original = ''
+        read_rc = ''
+
+        i += 2  # Passa alla prossima coppia (header + sequenza)
+
+    return lines
 
 # Read file GZ containing reads
 def read_gz(fasta_lines, rev_com='false'):
