@@ -44,7 +44,6 @@
             2) fingerprint of the reverse and complement of the original sequence (IDGENE_1 FINGERPRINT)
 
 
-
     c) MAPPING FINGERPRINT
         - METHOD   : fingerprint_mapping in SCRIPT lyn2vec.py
 
@@ -53,7 +52,6 @@
         - RETURN   : given a TXT file comtaing a list of fingerprint (IDGENE FINGERPRINT) computes a mapped file containing
                      a row for each fingerprint, with the format "IDGENE MAPPED_FINGERPRINT", where "MAPPED_FINGERPRINT" is the mapping of
                      the fingerprint
-
 
     
     d) GENERATE FILE .FASTA 
@@ -64,13 +62,10 @@
         - RETURN   : given the size of DNA in bp and GC content (between 0 and 1), generates a random DNA sequence and saves it in .fasta, .fa, or .fastq format.
 
 
+    e) SPLIT GENOME SEQUENCES IN FILE.FASTA TROUGH COMMON KMERS
+        - METHOD   : split_file in SCRIPT split_common_kmer.py
 
-    e) SPLIT GENOME SEQUENCES IN FILE.FASTA TROUGH LONGEST AND MOST FREQUENT COMMON SEQUENCES 
-        - METHOD   : LMCFS in SCRIPT split_fasta_by_lmfcs.py
+        - CMD_LINE : python split_common_kmer.py --file1 file1.fasta --file2 file2.fasta --size k
 
-        - CMD_LINE : python split_fasta_by_lmfcs.py --file1 file1.fasta --file2 file2.fasta --output substrings_frequencies.txt --length 4
-
-        - RETURN   : generates two new FASTA files with their sequences splitted based on their longest and most frequent subsequences with length fixed while preserving their original ID.
-
-
+        - RETURN   : generates two new FASTA files with their sequences splitted based on their common k-mers, with k chosen through the --size parameter. K-mers are calculated through the DSK tool.
 

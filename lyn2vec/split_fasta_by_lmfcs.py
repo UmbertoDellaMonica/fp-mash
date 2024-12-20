@@ -1,4 +1,4 @@
-# PRIMO APPROCCIO:
+# OBSOLETO:
 # PRENDERE DUE FILE FASTA E METTERLI IN UN UNICO FILE
 # EFFETTUARE (LONGEST AND MOST FREQUENT TCOMMON SEQUENCE) 
     # Estraiamo tutte le sottosequenze possibili per entrambe le sequenze.
@@ -13,6 +13,13 @@
         # CAPIRE IL TIPO DI FREQUENZA PREFERIBILE PER LA FATTORIZZAZIONE
 # EFFETTUARE LO SPLIT DEI DUE FILE ORIGINALI TROVANDO LA SEQUENZA 
 # SPLITTARE DAL SUO INIZIO AGGIUNGENDO A CAPO RIGA DI ID E POI A CAPO LA NUOVA SEQUENZA
+
+# ///// e) SPLIT GENOME SEQUENCES IN FILE.FASTA TROUGH LONGEST AND MOST FREQUENT COMMON SEQUENCES 
+      #  - METHOD   : LMCFS in SCRIPT split_fasta_by_lmfcs.py
+#
+      #  - CMD_LINE : python split_fasta_by_lmfcs.py --file1 file1.fasta --file2 file2.fasta --output substrings_frequencies.txt --length 4
+
+      #  - RETURN   : generates two new FASTA files with their sequences splitted based on their longest and most frequent subsequences with length fixed while preserving their original ID. ////
 
 
 # modifica linea 56: adesso prende tutte le sottosequenza di quella data lunghezza e non le maggiori uguali

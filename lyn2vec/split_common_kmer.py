@@ -1,6 +1,9 @@
 # find common kmers between two files, saves them in this type of file
 # kmer      frequenza in file1      frequenza in file2
 # split the two initial file based on ALL common kmers
+# python split_common_kmer.py --file1 file1.fasta --file2 file2.fasta --size k
+
+import argparse
 
 def findcommon(file1, file2, size, common_kmer):
     # i file di dsk sono tutti del tipo kmer e frequenza:
@@ -18,7 +21,7 @@ def findcommon(file1, file2, size, common_kmer):
 
 def reverse_and_complement(file,size, f1, f2):
 
-    with open(file, 'r') as file, open("rc_common.txt", 'w') as output, open(f1, 'r') as f1, open(f2, 'r') as f2:
+    with open(file, 'r') as file, open("common_kmers.txt", 'w') as output, open(f1, 'r') as f1, open(f2, 'r') as f2:
         for line in file:
             kmer = ""
             # reverse
@@ -84,13 +87,21 @@ def write_split_sequence(outfile, current_id, sequence, kmer_set):
                 
 
 if __name__ == '__main__':
-    file1 = "../dsk/bin/output.txt"
-    file2 = "../dsk/bin/output2.txt"
-    kmersize = 10
-    common_kmer= "common_kmers.txt"
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--file1', required = True)
+    parser.add_argument('--file2', required = True)
+    parser.add_argument('--size', type=int)
+
+    args = parser.parse_args()
+
+    file1 = args.file1
+    file2 = args.file2
+    kmersize = args.size
+    common_kmer= "common_output.txt"
 
     findcommon(file1, file2, kmersize, common_kmer)
     reverse_and_complement(common_kmer, kmersize, file1, file2)
 
-    split_files("lmfcs_fasta/file1.fasta", "rc_common.txt", kmersize, "1")
-    split_files("lmfcs_fasta/file2.fasta", "rc_common.txt", kmersize, "2")
+    split_files("lmfcs_fasta/file1.fasta", "common_kmers.txt", kmersize, "1")
+    split_files("lmfcs_fasta/file2.fasta", "common_kmers.txt", kmersize, "2")
