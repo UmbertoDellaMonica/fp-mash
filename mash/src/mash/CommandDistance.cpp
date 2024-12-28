@@ -1326,6 +1326,9 @@ CommandDistance::CompareFingerPrintOutput* compareFingerPrintWithPercentageSimil
 }
 
 
+// ----------------------------------------- FingerPrint - Jaccard Distance --------------------------------------------------------------------//
+
+
 
 double jaccardSimilarityAndCommon(
 
@@ -1362,70 +1365,9 @@ double jaccardSimilarityAndCommon(
         smallerSet = set1;
     }
 
-
-
-    // Usa un insieme per tenere traccia degli elementi già trovati nell'intersezione
-    /*std::unordered_set<size_t> foundIndices; // Indici di HashList già trovati nel largerSet
-
-    // Calcola l'intersezione e l'unione
-    for (const auto& list1 : largerSet) {
-        
-        bool foundSimilar = false;
-
-        // Controlla se list1 è simile a uno degli elementi in smallerSet
-        for (const auto& list2 : smallerSet) {
-            if (areHashListsSimilar(list1, list2)) {
-                intersectionSize++; // Incrementa la dimensione dell'intersezione
-                foundSimilar = true;
-                totalCommon++; // Aggiorna totalCommon
-                foundIndices.insert(&list1 - &largerSet[0]); // Aggiungi l'indice di list1
-                break; // Un match trovato, esci dal ciclo interno
-            }
-        }
-        unionSize++; // Aggiungi a unionSize per ogni elemento in largerSet
-        totalDenom++; // Aggiornamento di totalDenom
-    }
-
-    // Aggiungi gli elementi del smallerSet che non sono stati trovati nel largerSet
-    for (const auto& list2 : smallerSet) {
-        // Verifica se list2 è simile a un elemento già trovato in largerSet
-        bool foundSimilar = false;
-    
-        for (const auto& list1 : largerSet) {
-            if (areHashListsSimilar(list1, list2)) {
-                
-                foundSimilar = true;
-                //totalDenom++; // Aggiornamento di totalDenom quando viene trovata una corrispondenza
-                break;
-            }
-        }
-        if (!foundSimilar) {
-            unionSize++; // Aggiungi a unionSize se list2 non è stato trovato
-            totalDenom++;
-        }
-    }
-
-    // Verifica di evitare divisione per zero
-    if (unionSize == 0) {
-        return 0.0; // Nessuna similarità se l'unione è zero
-    }
-    
-    //totalDenom = totalDenom - totalCommon;
-    
-    cout<<"Total Denom : "<<totalDenom<<endl;
-    cout<<"Total Common :"<<totalCommon<<endl;
-
-    cout<<"Total Size Intersection :"<<intersectionSize<<endl;
-    cout<<"Total Size Union :"<<unionSize << endl;
-
-    // Calcola e restituisce il coefficiente di similarità di Jaccard
-    return static_cast<double>(intersectionSize) / unionSize;*/
-
-    cout<< "################################################# INTERSEZIONE ############################################" <<endl;
     // Calcolo dell'Intersezione 
     int intersectionSize = calculateIntersection(largerSet, smallerSet);
 
-    cout<< "################################################# UNIONE ############################################" <<endl;
 
     // Calcolo dell'Unione 
     int unionSize = calculateUnion(largerSet, smallerSet);
@@ -1434,9 +1376,6 @@ double jaccardSimilarityAndCommon(
     if (unionSize == 0) {
         return 0.0; // Nessuna similarità se l'unione è zero
     }
-
-    std::cout << "Total Size Intersection: " << intersectionSize << std::endl;
-    std::cout << "Total Size Union: " << unionSize << std::endl;
 
     totalCommon = intersectionSize;
     totalDenom = unionSize;
@@ -1547,7 +1486,9 @@ int hashEquals32(uint32_t hash1, uint32_t hash2, int hashSize) {
     return (hash1 == hash2) ? 0 : hashSize;
 }
 
-/* calcolo dove avviene la funzione di calcolo di Hamming Distance*/
+
+
+// Calcolo dove avviene la funzione di calcolo di Hamming Distance
 /*
 int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     int totalDistance = 0;
@@ -1579,8 +1520,8 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
 }
 */
 
+
 // FUNZIONE PER IL CALCOLO DI JACCARD
-/*
 int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     // Calcola la distanza di Jaccard tra due HashList
     int intersectionCount = 0;
@@ -1647,14 +1588,22 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     // Calcola e restituisce la distanza di Jaccard
     double jaccardDistance = 1.0 - (double(intersectionCount) / unionCount);
     return static_cast<int>(jaccardDistance);
-}*/
+}
+
+
+
+
 
 
 //FUNZIONE DI DISTANZA TRA VETTORI CON DISTANZA DI EDIT
 
+#include "HashList.h"
+#include <vector>
+#include <stdexcept>
+#include <algorithm>
 
-// Funzione per calcolare la distanza di Levenshtein tra due HashList
-int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
+ // Funzione per calcolare la distanza di Levenshtein tra due HashList
+/*int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     size_t m = list1.size();
     size_t n = list2.size();
 
@@ -1724,12 +1673,13 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
             std::cout << std::setw(10) << matrix[i][j];
         }
         std::cout << "\n";
-    }*/
+    }
+
+    //cout << "distanza minima: " << matrix[m][n] << endl;
     // La distanza finale si trova nell'ultima cella della matrice
-
-
+    
     return matrix[m][n];
-}
+}*/
 
 
 
@@ -1749,7 +1699,13 @@ bool areHashListsSimilar(const HashList& list1, const HashList& list2) {
 
     return distance <= maxThreshold;
 }
+
+
+
 // ############# FINE CALCOLO DELLA DISTANZA DI HAMMING TRA I VARI VETTORI DI HASH ######################
+
+
+
 //--------------------------------------- FingerPrint - Jaccard With % of Similarity -------------------------------------------------------// 
 
 

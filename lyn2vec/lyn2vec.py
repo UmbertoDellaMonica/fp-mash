@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from fingerprint_utils import *
 from multiprocessing.pool import Pool
@@ -16,6 +17,8 @@ def basic_fingerprint(args):
     # Input FASTA file containing transcripts
     input_fasta = args.path + args.fasta
 
+    input_file = os.path.splitext(args.fasta)[0]
+
     print(f"Used of rev_comb = {args.rev_comb}")
 
     # Extract of reads (Format = ID GENE read)
@@ -29,12 +32,12 @@ def basic_fingerprint(args):
 
     print('\nCompute fingerprint by list (%s, %s) - start...' % (args.type_factorization, args.fact))
 
-    fingerprint_file = open("%s" % args.path + "fingerprint_" + args.type_factorization + ".txt", 'w')
+    fingerprint_file = open("%s" % args.path + "" +input_file +"-"+ args.type_factorization + ".txt", 'w')
     fact_fingerprint_file = None
     if args.fact == 'create':
         # Create file containing factorizations
-        fact_fingerprint_file = open("%s" % args.path + "fact_fingerprint_" + args.type_factorization + ".txt", 'w')
-
+        fact_fingerprint_file = open("%s" % args.path + "fact_"+input_file+"-"+ args.type_factorization + ".txt", 'w')
+        print("Sono qui!")
     # SPLIT for multiprocessing
     size = int(len(read_lines)/args.n)
     splitted_lines = [read_lines[i:i + size] for i in range(0, len(read_lines), size)]
