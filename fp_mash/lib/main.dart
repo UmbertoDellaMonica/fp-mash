@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fp_mash/screen/steps/step_2_screen.dart';
+import 'package:fp_mash/screen/steps/step_3_screen.dart';
 
 import 'screen/home/home_screen.dart';
 import 'screen/steps/step_1_screen.dart';
@@ -44,6 +45,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/step1': (context) => Step1Screen(),
         '/step2': (context) => Step2Screen(),
+        '/step3': (context) => Step3Screen(),
       },
     );
   }
