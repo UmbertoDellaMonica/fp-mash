@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fp_mash/services/mash_services_shell.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -15,6 +16,11 @@ class _Step3ScreenState extends State<Step3Screen> {
   bool isStep3Completed = false;
   String? filePath1;
   String? filePath2;
+
+  // Aggiungi il servizio MashShellService
+  final MashShellService mashShellService = MashShellService();
+  String licenseOutput = '';
+  bool isLoading = false;
 
   /// Parameters for lyn2vec operation
   String selectedOperation = 'basic';
@@ -36,6 +42,43 @@ class _Step3ScreenState extends State<Step3Screen> {
     'CFL_ICFL_COMB-20',
     'CFL_ICFL_COMB-30'
   ];
+
+  Future<void> _showMashLicense() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final output = await mashShellService.showLicense();
+
+    setState(() {
+      licenseOutput = output;
+      isLoading = false;
+    });
+
+    // Show a custom, scrollable toast that lasts indefinitely
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Mash License Information'),
+          content: SingleChildScrollView(
+            child: Text(
+              licenseOutput,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _pickFile(bool isFirstFile) async {
     try {
@@ -117,7 +160,8 @@ class _Step3ScreenState extends State<Step3Screen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
-                        const Text('Genetic Sequence 1 Splitted by k-mers', style: TextStyle(fontSize: 18.0)),
+                        const Text('Genetic Sequence 1 Splitted by k-mers',
+                            style: TextStyle(fontSize: 18.0)),
                         ElevatedButton(
                           onPressed: () {
                             _pickFile(true);
@@ -126,7 +170,8 @@ class _Step3ScreenState extends State<Step3Screen> {
                         ),
                         if (filePath1 != null) ...[
                           const SizedBox(height: 10),
-                          const Icon(Icons.description, size: 40, color: Colors.blue),
+                          const Icon(Icons.description,
+                              size: 40, color: Colors.blue),
                           const SizedBox(height: 10),
                           Text(
                             filePath1!.split('/').last,
@@ -142,7 +187,8 @@ class _Step3ScreenState extends State<Step3Screen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
-                        const Text('Genetic Sequence 2 Splitted by k-mers', style: TextStyle(fontSize: 18.0)),
+                        const Text('Genetic Sequence 2 Splitted by k-mers',
+                            style: TextStyle(fontSize: 18.0)),
                         ElevatedButton(
                           onPressed: () {
                             _pickFile(false);
@@ -151,7 +197,8 @@ class _Step3ScreenState extends State<Step3Screen> {
                         ),
                         if (filePath2 != null) ...[
                           const SizedBox(height: 10),
-                          const Icon(Icons.description, size: 40, color: Colors.blue),
+                          const Icon(Icons.description,
+                              size: 40, color: Colors.blue),
                           const SizedBox(height: 10),
                           Text(
                             filePath2!.split('/').last,
@@ -239,24 +286,18 @@ class _Step3ScreenState extends State<Step3Screen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      // TODO: Implement the following actions:
-                      // - Retrieve the file splitted_1.txt for genetic sequence 1
-                      // - Retrieve the file splitted_2.txt for genetic sequence 2
-                      // - Call lyn2vec to generate the fingerprints using Python code with the selected parameters
-                      // - If everything is successful, display a success toast
-
-                      setState(() {
-                        isStep3Completed = true;
-                      });
-                    },
-                    child: const Text('Generate FingerPrints Sequence'),
+                    onPressed: _showMashLicense,
+                    child: isLoading
+                        ? const CircularProgressIndicator()
+                        : const Text('Show Mash License'),
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
-                    onPressed: isStep3Completed ? () {
-                      // Navigate to the next step
-                    } : null,
+                    onPressed: isStep3Completed
+                        ? () {
+                            // Navigate to the next step
+                          }
+                        : null,
                     child: const Text('Next >'),
                   ),
                 ],

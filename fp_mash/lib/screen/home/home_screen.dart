@@ -1,11 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-
-
-
 class MyHomePage extends StatefulWidget {
-
   const MyHomePage({super.key, required this.title});
 
   final String title;
@@ -14,12 +10,18 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+
+
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
+      /// AppBar 
       appBar: AppBar(
-        title: const Text('fp-mash K-Fingers'),
+        leading: Icon(Icons.science), // Aggiungi l'icona qui
+        title: Text(widget.title), // Usa il titolo fornito dal widget
       ),
       body: Center(
         child: Column(

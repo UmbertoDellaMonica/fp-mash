@@ -49,6 +49,7 @@ dev_dependencies:
   path_provider: any
   oktoast: any 
   file_picker: any
+  process_run: any
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

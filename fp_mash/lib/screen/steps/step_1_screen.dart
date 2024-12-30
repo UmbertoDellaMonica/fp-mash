@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fp_mash/screen/steps/step_2_screen.dart';
 
 class Step1Screen extends StatefulWidget {
   @override
@@ -7,6 +6,7 @@ class Step1Screen extends StatefulWidget {
 }
 
 class _Step1ScreenState extends State<Step1Screen> {
+  
   bool isTextInput1 = true;
   bool isTextInput2 = true;
   bool isStep1Completed = false;
