@@ -7,6 +7,7 @@
 #include "CommandContain.h"
 #include "Sketch.h"
 #include "SketchFingerPrint.h"
+#include <unordered_map>
 #include <iostream>
 #include <zlib.h>
 #include "ThreadPool.h"
