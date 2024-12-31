@@ -28,6 +28,7 @@ class _Step1ScreenState extends State<Step1Screen> {
 
   final DskShellService _dskShellService = DskShellService();
 
+  /// Upload File from the directory 
   Future<void> _pickFile(bool isFirstFile) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
@@ -72,6 +73,7 @@ class _Step1ScreenState extends State<Step1Screen> {
     }
   }
 
+  /// Funzione per la generazione del File H5 
   Future<void> _generateH5File(bool isFirstFile) async {
     setState(() {
       isLoading = true;
@@ -119,7 +121,7 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
   }
 
-  // Funzione per la conversione HDF5 in FASTA
+  /// Funzione per la conversione HDF5 in FASTA
   Future<void> _convertH5ToFasta(String h5FilePath, bool isFirstFile) async {
     setState(() {
       isLoading = true;
@@ -157,6 +159,9 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
   }
 
+
+
+  /// Verifica dello Step1 se è completo oppure no 
   Future<void> _verifyStep1() async {
     if (filePath1ConversionFasta != null && filePath2ConversionFasta != null) {
       showToast(

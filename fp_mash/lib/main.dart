@@ -52,6 +52,7 @@ class _MyAppState extends State<MyApp> {
         '/step2': (context) => Step2Screen(),
         '/step3': (context) => Step3Screen(),
       },
+      debugShowCheckedModeBanner: false,
     );
   }
 }

@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:fp_mash/services/mash_services_shell.dart';
+import 'package:fp_mash/services/lyn2vec_services_shell.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 class Step3Screen extends StatefulWidget {
@@ -13,13 +13,17 @@ class Step3Screen extends StatefulWidget {
 }
 
 class _Step3ScreenState extends State<Step3Screen> {
-  
   bool isStep3Completed = false;
   String? filePath1;
   String? filePath2;
+  String? h5FilePath1;
+  String? h5FilePath2;
+  String? filePath1ConversionFasta;
+  String? filePath2ConversionFasta;
 
-  // Aggiungi il servizio MashShellService
-  final MashShellService mashShellService = MashShellService();
+  // Aggiungi il servizio Lyn2vecShellService
+  final Lyn2vecShellService _lyn2vecShellService = Lyn2vecShellService();
+
   String licenseOutput = '';
   bool isLoading = false;
 
@@ -44,12 +48,12 @@ class _Step3ScreenState extends State<Step3Screen> {
     'CFL_ICFL_COMB-30'
   ];
 
-  Future<void> _showMashLicense() async {
+  Future<void> _showLyn2vecHelp() async {
     setState(() {
       isLoading = true;
     });
 
-    final output = await mashShellService.showLicense();
+    final output = await _lyn2vecShellService.showHelp();
 
     setState(() {
       licenseOutput = output;
@@ -61,7 +65,7 @@ class _Step3ScreenState extends State<Step3Screen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Mash License Information'),
+          title: const Text('Lyn2vec Help Information'),
           content: SingleChildScrollView(
             child: Text(
               licenseOutput,
@@ -87,43 +91,34 @@ class _Step3ScreenState extends State<Step3Screen> {
 
       if (result != null) {
         String? filePath = result.files.single.path;
-        Directory? saveDir;
 
-        if (Platform.isMacOS) {
-          saveDir = await getApplicationSupportDirectory();
-        } else if (Platform.isLinux) {
-          saveDir = await getApplicationDocumentsDirectory();
-        } else if (Platform.isWindows) {
-          saveDir = await getApplicationSupportDirectory();
+        if (kDebugMode) {
+          print("File Path : $filePath");
         }
 
-        if (saveDir != null) {
-          String savePath = '${saveDir.path}/${filePath!.split('/').last}';
+        setState(() {
+          if (isFirstFile) {
+            filePath1 = filePath;
+          } else {
+            filePath2 = filePath;
+          }
+        });
 
-          setState(() {
-            if (isFirstFile) {
-              filePath1 = savePath;
-            } else {
-              filePath2 = savePath;
-            }
-          });
-
-          showToast(
-            "File uploaded successfully!",
-            duration: const Duration(seconds: 2),
-            position: ToastPosition.bottom,
-            backgroundColor: Colors.green,
-            textStyle: const TextStyle(color: Colors.white),
-          );
-        } else {
-          showToast(
-            "Failed to determine save directory",
-            duration: const Duration(seconds: 2),
-            position: ToastPosition.bottom,
-            backgroundColor: Colors.red,
-            textStyle: const TextStyle(color: Colors.white),
-          );
-        }
+        showToast(
+          "File uploaded successfully!",
+          duration: const Duration(seconds: 2),
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.green,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+      } else {
+        showToast(
+          "Failed to determine save directory",
+          duration: const Duration(seconds: 2),
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.red,
+          textStyle: const TextStyle(color: Colors.white),
+        );
       }
     } catch (e) {
       showToast(
@@ -136,12 +131,61 @@ class _Step3ScreenState extends State<Step3Screen> {
     }
   }
 
+  Future<void> _generateH5File(bool isFirstFile) async {
+    // Simulazione della generazione del file HDF5
+    setState(() {
+      if (isFirstFile) {
+        h5FilePath1 = filePath1?.replaceAll('.txt', '.h5');
+      } else {
+        h5FilePath2 = filePath2?.replaceAll('.txt', '.h5');
+      }
+    });
+
+    showToast(
+      "HDF5 file generated successfully!",
+      duration: const Duration(seconds: 2),
+      position: ToastPosition.bottom,
+      backgroundColor: Colors.green,
+      textStyle: const TextStyle(color: Colors.white),
+    );
+  }
+
+  Future<void> _convertH5ToFasta(String h5FilePath, bool isFirstFile) async {
+    // Simulazione della conversione del file HDF5 in file FASTA
+    setState(() {
+      if (isFirstFile) {
+        filePath1ConversionFasta = h5FilePath.replaceAll('.h5', '.fasta');
+      } else {
+        filePath2ConversionFasta = h5FilePath.replaceAll('.h5', '.fasta');
+      }
+    });
+
+    showToast(
+      "FASTA file converted successfully!",
+      duration: const Duration(seconds: 2),
+      position: ToastPosition.bottom,
+      backgroundColor: Colors.green,
+      textStyle: const TextStyle(color: Colors.white),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       appBar: AppBar(
         title: const Text('Step 3 - Lyn2vec Fingerprints'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: _showLyn2vecHelp,
+            tooltip: 'Show Lyn2vec Help',
+          ),
+        ],
       ),
+
+
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -149,6 +193,11 @@ class _Step3ScreenState extends State<Step3Screen> {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              const Divider(),
+              const Text(
+                'Lyn2vec Upload File and Generate FingerPrints!',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              ),
               const Text(
                 'Upload the files splitted from Step 2. For each file generate a fingerprint file',
                 textAlign: TextAlign.center,
@@ -157,17 +206,21 @@ class _Step3ScreenState extends State<Step3Screen> {
               const SizedBox(height: 20),
               Row(
                 children: <Widget>[
+                  // Sequence Genetic 1 - Insert Input
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
-                        const Text('Genetic Sequence 1 Splitted by k-mers',
+                        const Text('Genetic Sequence 1',
                             style: TextStyle(fontSize: 18.0)),
-                        ElevatedButton(
-                          onPressed: () {
-                            _pickFile(true);
-                          },
-                          child: const Text('Upload File'),
+                        Tooltip(
+                          message: 'Carica il file di sequenza genetica 1',
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _pickFile(true);
+                            },
+                            child: const Text('Upload File'),
+                          ),
                         ),
                         if (filePath1 != null) ...[
                           const SizedBox(height: 10),
@@ -175,26 +228,74 @@ class _Step3ScreenState extends State<Step3Screen> {
                               size: 40, color: Colors.blue),
                           const SizedBox(height: 10),
                           Text(
-                            filePath1!.split('/').last,
+                            filePath1!,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16.0),
                           ),
+                          Tooltip(
+                            message:
+                                'Genera il file Fingerprints dalla sequenza genetica 1',
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _generateH5File(true);
+                              },
+                              child: const Text('Generate Fingerprints File'),
+                            ),
+                          ),
+                          if (h5FilePath1 != null) ...[
+                            const SizedBox(height: 10),
+                            const Icon(Icons.file_copy,
+                                size: 40, color: Colors.green),
+                            const SizedBox(height: 10),
+                            Text(
+                              h5FilePath1!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 16.0),
+                            ),
+                            Tooltip(
+                              message:
+                                  'Converti il file Fingerprints in file FASTA',
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _convertH5ToFasta(h5FilePath1!, true);
+                                },
+                                child:
+                                    const Text('Convert Fingerprints to FASTA'),
+                              ),
+                            ),
+                            if (filePath1ConversionFasta != null) ...[
+                              const SizedBox(height: 10),
+                              const Icon(Icons.file_copy,
+                                  size: 40, color: Colors.orange),
+                              const SizedBox(height: 10),
+                              Text(
+                                filePath1ConversionFasta!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16.0),
+                              ),
+                            ],
+                          ],
                         ],
                       ],
                     ),
                   ),
+                  // Divider Width 
                   const SizedBox(width: 20),
+                  // Sequence Genetic 2 - Insert Input
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
-                        const Text('Genetic Sequence 2 Splitted by k-mers',
+                        const Text('Genetic Sequence 2',
                             style: TextStyle(fontSize: 18.0)),
-                        ElevatedButton(
-                          onPressed: () {
-                            _pickFile(false);
-                          },
-                          child: const Text('Upload File'),
+                        Tooltip(
+                          message: 'Carica il file di sequenza genetica 2',
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _pickFile(false);
+                            },
+                            child: const Text('Upload File'),
+                          ),
                         ),
                         if (filePath2 != null) ...[
                           const SizedBox(height: 10),
@@ -202,10 +303,53 @@ class _Step3ScreenState extends State<Step3Screen> {
                               size: 40, color: Colors.blue),
                           const SizedBox(height: 10),
                           Text(
-                            filePath2!.split('/').last,
+                            filePath2!,
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16.0),
                           ),
+                          Tooltip(
+                            message:
+                                'Genera il file Fingerprints dalla sequenza genetica 2',
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _generateH5File(false);
+                              },
+                              child: const Text('Generate Fingerprints File'),
+                            ),
+                          ),
+                          if (h5FilePath2 != null) ...[
+                            const SizedBox(height: 10),
+                            const Icon(Icons.file_copy,
+                                size: 40, color: Colors.green),
+                            const SizedBox(height: 10),
+                            Text(
+                              h5FilePath2!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 16.0),
+                            ),
+                            Tooltip(
+                              message:
+                                  'Converti il file Fingerprints in file FASTA',
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _convertH5ToFasta(h5FilePath2!, false);
+                                },
+                                child:
+                                    const Text('Convert Fingerprints to FASTA'),
+                              ),
+                            ),
+                            if (filePath2ConversionFasta != null) ...[
+                              const SizedBox(height: 10),
+                              const Icon(Icons.file_copy,
+                                  size: 40, color: Colors.orange),
+                              const SizedBox(height: 10),
+                              Text(
+                                filePath2ConversionFasta!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16.0),
+                              ),
+                            ],
+                          ],
                         ],
                       ],
                     ),
@@ -213,96 +357,75 @@ class _Step3ScreenState extends State<Step3Screen> {
                 ],
               ),
               const SizedBox(height: 30),
+              const Divider(),
               const Text(
                 'Lyn2vec Parameters',
                 style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              // Dropdown for selecting lyn2vec operation
-              DropdownButton<String>(
+              DropdownButtonFormField<String>(
                 value: selectedOperation,
+                onChanged: (value) {
+                  setState(() {
+                    selectedOperation = value!;
+                  });
+                },
                 items: lyn2vecOperations.map((String operation) {
                   return DropdownMenuItem<String>(
                     value: operation,
                     child: Text(operation),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
+                decoration: const InputDecoration(
+                  labelText: 'Lyn2vec Operation',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                title: const Text('Rev_Comb'),
+                value: revComb,
+                onChanged: (value) {
                   setState(() {
-                    selectedOperation = newValue!;
+                    revComb = value;
                   });
                 },
-                hint: const Text('Select Operation Type'),
               ),
-              const SizedBox(height: 20),
-              // Checkbox for selecting rev_comb
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  const Text('Reverse and Complement:'),
-                  Checkbox(
-                    value: revComb,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        revComb = value!;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Dropdown for selecting type_factorization
-              DropdownButton<String>(
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
                 value: selectedFactorization,
+                onChanged: (value) {
+                  setState(() {
+                    selectedFactorization = value!;
+                  });
+                },
                 items: factorizationOptions.map((String factorization) {
                   return DropdownMenuItem<String>(
                     value: factorization,
                     child: Text(factorization),
                   );
                 }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedFactorization = newValue!;
-                  });
-                },
-                hint: const Text('Select Factorization Type'),
-              ),
-              const SizedBox(height: 20),
-              // Text field for entering n value
-              TextField(
-                keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
+                  labelText: 'Type of Factorization',
                   border: OutlineInputBorder(),
-                  labelText: 'Enter n value (Optional)',
-                  hintText: '1',
                 ),
-                onChanged: (String value) {
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                initialValue: nValue.toString(),
+                decoration: const InputDecoration(
+                  labelText: 'N Value (Optional)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
                   setState(() {
                     nValue = int.tryParse(value) ?? 1;
                   });
                 },
               ),
-              const SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: _showMashLicense,
-                    child: isLoading
-                        ? const CircularProgressIndicator()
-                        : const Text('Show Mash License'),
-                  ),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: isStep3Completed
-                        ? () {
-                            // Navigate to the next step
-                          }
-                        : null,
-                    child: const Text('Next >'),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 20),
+              const Divider(),
             ],
           ),
         ),

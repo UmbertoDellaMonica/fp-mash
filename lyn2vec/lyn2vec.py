@@ -17,6 +17,9 @@ def basic_fingerprint(args):
     # Input FASTA file containing transcripts
     input_fasta = args.path + args.fasta
 
+    # Definisci il percorso di output per i file generati
+    output_path = args.output_path  # Nuovo parametro per il percorso di salvataggio
+
     input_file = os.path.splitext(args.fasta)[0]
 
     print(f"Used of rev_comb = {args.rev_comb}")
@@ -24,22 +27,22 @@ def basic_fingerprint(args):
     # Extract of reads (Format = ID GENE read)
     read_lines = extract_reads(name_file=input_fasta, filter=args.filter, rev_com=args.rev_comb)
 
-    #print_lines(read_lines)
-
     if len(read_lines) == 0:
         print('No reads extracted!')
         exit(-1)
 
     print('\nCompute fingerprint by list (%s, %s) - start...' % (args.type_factorization, args.fact))
 
-    fingerprint_file = open("%s" % args.path + "" +input_file +"-"+ args.type_factorization + ".txt", 'w')
+    # Usa il percorso di output per salvare il file di fingerprint
+    fingerprint_file = open(f"{output_path}/{input_file}-{args.type_factorization}.txt", 'w')
     fact_fingerprint_file = None
     if args.fact == 'create':
         # Create file containing factorizations
-        fact_fingerprint_file = open("%s" % args.path + "fact_"+input_file+"-"+ args.type_factorization + ".txt", 'w')
+        fact_fingerprint_file = open(f"{output_path}/fact_{input_file}-{args.type_factorization}.txt", 'w')
         print("Sono qui!")
+    
     # SPLIT for multiprocessing
-    size = int(len(read_lines)/args.n)
+    size = int(len(read_lines) / args.n)
     splitted_lines = [read_lines[i:i + size] for i in range(0, len(read_lines), size)]
 
     with Pool(args.n) as pool:
@@ -81,7 +84,6 @@ def basic_fingerprint(args):
         fingerprint_lines = []
         fingerprint_fact_lines = []
         for res in pool.map(func, splitted_lines):
-
             fingerprint_lines = fingerprint_lines + res[0]
             fingerprint_fact_lines = fingerprint_fact_lines + res[1]
 
@@ -96,6 +98,7 @@ def basic_fingerprint(args):
 
         print('\nCompute fingerprint by list (%s, %s) - stop!' % (args.type_factorization, args.fact))
 ########################################################################################################################
+
 
 
 
@@ -250,6 +253,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--type', dest='type', action='store', default='1f_np')
     parser.add_argument('--path', dest='path', action='store', default='basic/')
+    parser.add_argument('--output_path', dest='output_path', action='store', default='output/')  # Nuovo parametro
     parser.add_argument('--rev_comb', dest='rev_comb', action='store', default='false')
     parser.add_argument('--type_factorization', dest='type_factorization', action='store',default='CFL')
     parser.add_argument('--fasta', dest='fasta', action='store', default='transcript_genes.fa')
@@ -265,7 +269,6 @@ if __name__ == '__main__':
     parser.add_argument('--format', required=False, choices=['fasta', 'fa', 'fastq'], help="Output file format")
     parser.add_argument('--size', type=int, required=False, help="Size of DNA sequence in bp")
     parser.add_argument('--number_dna_generate',type=int,required=False,help="Size of Number of DNA you want generate")
-
 
     args = parser.parse_args()
 
