@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fp_mash/services/directory_service.dart';
 import 'package:fp_mash/services/lyn2vec_services_shell.dart';
 import 'package:oktoast/oktoast.dart';
 import 'dart:io';
@@ -14,15 +15,18 @@ class Step3Screen extends StatefulWidget {
 
 class _Step3ScreenState extends State<Step3Screen> {
   bool isStep3Completed = false;
+  
   String? filePath1;
   String? filePath2;
+
   String? h5FilePath1;
   String? h5FilePath2;
-  String? filePath1ConversionFasta;
-  String? filePath2ConversionFasta;
 
-  // Aggiungi il servizio Lyn2vecShellService
+  /// Aggiungi il servizio Lyn2vecShellService
   final Lyn2vecShellService _lyn2vecShellService = Lyn2vecShellService();
+
+  /// Directory Service
+  final DirectoryService _directoryService = DirectoryService();
 
   String licenseOutput = '';
   bool isLoading = false;
@@ -131,37 +135,75 @@ class _Step3ScreenState extends State<Step3Screen> {
     }
   }
 
-  Future<void> _generateH5File(bool isFirstFile) async {
-    // Simulazione della generazione del file HDF5
-    setState(() {
-      if (isFirstFile) {
-        h5FilePath1 = filePath1?.replaceAll('.txt', '.h5');
-      } else {
-        h5FilePath2 = filePath2?.replaceAll('.txt', '.h5');
-      }
-    });
+  Future<void> _generateFingerPrintsFile(bool isFirstFile) async {
+    String outputDirectory = await _directoryService.getCommonDirectoryPath();
 
-    showToast(
-      "HDF5 file generated successfully!",
-      duration: const Duration(seconds: 2),
-      position: ToastPosition.bottom,
-      backgroundColor: Colors.green,
-      textStyle: const TextStyle(color: Colors.white),
+    String step3Directory = _directoryService.step3Directory;
+    
+    /// Final Step Directory 
+    String stepDirectory = '$outputDirectory$step3Directory';
+
+    // Verifica e crea la directory di destinazione, se necessario
+    await _directoryService.createStepDirectory('step3_lyn2vec');
+
+    String inputFastaFile = isFirstFile ? filePath1! : filePath2!;
+
+    inputFastaFile = inputFastaFile.split('/').last;
+
+    // Parametri per il comando lyn2vec
+    String typeOption = selectedOperation; // Selezione dell'operazione (es. 'basic')
+
+    String pathDirectoryOption = outputDirectory; // La directory principale
+
+    if(nValue<0 || nValue==0){
+      // Mostra un toast per confermare la generazione del file
+      showToast(
+        "nValue non può essere zero o minore di zero",
+        duration: const Duration(seconds: 2),
+        position: ToastPosition.bottom,
+        backgroundColor: Colors.red,
+        textStyle: const TextStyle(color: Colors.white),
+      );
+      return;
+    }
+
+    String typeFactorizationOption = selectedFactorization; // Tipo di fattorizzazione
+
+    String nValueOption = nValue.toString(); // Valore di 'n'
+    String revCombOption = revComb ? 'true' : 'false'; // RevComb come booleano
+    String outputPathDirectoryOption = stepDirectory; // Percorso di output
+
+    // Esegui il comando per generare i fingerprint
+    String result = await _lyn2vecShellService.generateFingerPrints(
+      typeOption,
+      pathDirectoryOption,
+      inputFastaFile,
+      typeFactorizationOption,
+      nValueOption,
+      revCombOption,
+      outputPathDirectoryOption,
     );
-  }
 
-  Future<void> _convertH5ToFasta(String h5FilePath, bool isFirstFile) async {
-    // Simulazione della conversione del file HDF5 in file FASTA
+    // Determina il nome dinamico del file in base al tipo di fattorizzazione
+    String generatedFileName =
+        '${inputFastaFile.replaceAll('.fasta', '')}-$typeFactorizationOption.txt';
+
+    // Aggiorna il percorso del file generato
     setState(() {
       if (isFirstFile) {
-        filePath1ConversionFasta = h5FilePath.replaceAll('.h5', '.fasta');
+
+        h5FilePath1 =
+            '$stepDirectory/$generatedFileName'; // Nome dinamico del file
       } else {
-        filePath2ConversionFasta = h5FilePath.replaceAll('.h5', '.fasta');
+        
+        h5FilePath2 =
+            '$stepDirectory/$generatedFileName'; // Nome dinamico del file
       }
     });
 
+    // Mostra un toast per confermare la generazione del file
     showToast(
-      "FASTA file converted successfully!",
+      "File generated successfully: $generatedFileName at $stepDirectory",
       duration: const Duration(seconds: 2),
       position: ToastPosition.bottom,
       backgroundColor: Colors.green,
@@ -172,7 +214,6 @@ class _Step3ScreenState extends State<Step3Screen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: AppBar(
         title: const Text('Step 3 - Lyn2vec Fingerprints'),
         actions: [
@@ -183,9 +224,6 @@ class _Step3ScreenState extends State<Step3Screen> {
           ),
         ],
       ),
-
-
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -237,7 +275,7 @@ class _Step3ScreenState extends State<Step3Screen> {
                                 'Genera il file Fingerprints dalla sequenza genetica 1',
                             child: ElevatedButton(
                               onPressed: () {
-                                _generateH5File(true);
+                                _generateFingerPrintsFile(true);
                               },
                               child: const Text('Generate Fingerprints File'),
                             ),
@@ -252,34 +290,13 @@ class _Step3ScreenState extends State<Step3Screen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 16.0),
                             ),
-                            Tooltip(
-                              message:
-                                  'Converti il file Fingerprints in file FASTA',
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  _convertH5ToFasta(h5FilePath1!, true);
-                                },
-                                child:
-                                    const Text('Convert Fingerprints to FASTA'),
-                              ),
-                            ),
-                            if (filePath1ConversionFasta != null) ...[
-                              const SizedBox(height: 10),
-                              const Icon(Icons.file_copy,
-                                  size: 40, color: Colors.orange),
-                              const SizedBox(height: 10),
-                              Text(
-                                filePath1ConversionFasta!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 16.0),
-                              ),
-                            ],
+                            
                           ],
                         ],
                       ],
                     ),
                   ),
-                  // Divider Width 
+                  // Divider Width
                   const SizedBox(width: 20),
                   // Sequence Genetic 2 - Insert Input
                   Expanded(
@@ -312,7 +329,7 @@ class _Step3ScreenState extends State<Step3Screen> {
                                 'Genera il file Fingerprints dalla sequenza genetica 2',
                             child: ElevatedButton(
                               onPressed: () {
-                                _generateH5File(false);
+                                _generateFingerPrintsFile(false);
                               },
                               child: const Text('Generate Fingerprints File'),
                             ),
@@ -327,28 +344,6 @@ class _Step3ScreenState extends State<Step3Screen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 16.0),
                             ),
-                            Tooltip(
-                              message:
-                                  'Converti il file Fingerprints in file FASTA',
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  _convertH5ToFasta(h5FilePath2!, false);
-                                },
-                                child:
-                                    const Text('Convert Fingerprints to FASTA'),
-                              ),
-                            ),
-                            if (filePath2ConversionFasta != null) ...[
-                              const SizedBox(height: 10),
-                              const Icon(Icons.file_copy,
-                                  size: 40, color: Colors.orange),
-                              const SizedBox(height: 10),
-                              Text(
-                                filePath2ConversionFasta!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 16.0),
-                              ),
-                            ],
                           ],
                         ],
                       ],
@@ -414,7 +409,7 @@ class _Step3ScreenState extends State<Step3Screen> {
               TextFormField(
                 initialValue: nValue.toString(),
                 decoration: const InputDecoration(
-                  labelText: 'N Value (Optional)',
+                  labelText: 'N Value (Optional) Inserisci il numero di Sequenze Genetiche contenute all\' interno del file.',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,

@@ -55,17 +55,7 @@ class Lyn2vecShellService {
     final shell = Shell();
     try {
 
-      String lyn2vecGenerateFingerprints = """ $command  
-      
-      $typeFlag $typeOption  
-      $pathDirectoryFlag $pathDirectoryOption   
-      $inputFileFastaFlag $inputFileFastaOption  
-      $outputPathDirectoryFlag $outputPathDirectoryOption
-      $typeFactorizationFlag $typeFactorizationOption 
-      $nValueFlag $nValueOption
-      $revCombFlag $revCombOption
-      
-      """;
+      String lyn2vecGenerateFingerprints = """ $command $typeFlag $typeOption $pathDirectoryFlag $pathDirectoryOption  $inputFileFastaFlag $inputFileFastaOption $outputPathDirectoryFlag $outputPathDirectoryOption $typeFactorizationFlag $typeFactorizationOption $nValueFlag $nValueOption $revCombFlag $revCombOption """;
       // Esegui il comando `mash --license`
       final result = await shell.run(lyn2vecGenerateFingerprints);
 
