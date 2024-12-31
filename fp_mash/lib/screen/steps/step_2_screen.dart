@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fp_mash/services/directory_service.dart';
 
 class Step2Screen extends StatefulWidget {
   @override
@@ -6,6 +7,9 @@ class Step2Screen extends StatefulWidget {
 }
 
 class _Step2ScreenState extends State<Step2Screen> {
+
+
+  final DirectoryService _directoryService = DirectoryService();
   
   bool isStep2Completed = false;
 
@@ -71,7 +75,10 @@ class _Step2ScreenState extends State<Step2Screen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: isStep2Completed ? () {
+              onPressed: isStep2Completed ? () async {
+
+                await _directoryService.createStepDirectory(_directoryService.step3Directory);
+
                 // Navigate to the next step
                 Navigator.pushNamed(context, '/step3');
               } : null,

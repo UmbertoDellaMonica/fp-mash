@@ -18,6 +18,9 @@ class Lyn2vecShellService {
   final String revCombFlag = "--rev_comb";
   final String outputPathDirectoryFlag = "--output_path";
 
+
+  
+
   /// Metodo per mostrare l'help di Lyn2vec
   Future<String> showHelp() async {
     final shell = Shell();

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fp_mash/services/directory_service.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -10,17 +11,17 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-
-
 class _MyHomePageState extends State<MyHomePage> {
+
+
+
+  final DirectoryService _directoryService = DirectoryService(); // Istanza del servizio
+
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
-      /// AppBar 
       appBar: AppBar(
-        leading: Icon(Icons.science), // Aggiungi l'icona qui
+        leading: const Icon(Icons.science), // Aggiungi l'icona qui
         title: Text(widget.title), // Usa il titolo fornito dal widget
       ),
       body: Center(
@@ -51,8 +52,11 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () {
-                /// Navigate to the next step in the pipeline
+              onPressed: () async {
+                // Crea la directory per il primo step
+                await _directoryService.createStepDirectory(_directoryService.step1Directory);
+                
+                // Naviga al prossimo step
                 Navigator.pushNamed(context, '/step1');
               },
               child: const Text('Start'),
@@ -63,3 +67,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+

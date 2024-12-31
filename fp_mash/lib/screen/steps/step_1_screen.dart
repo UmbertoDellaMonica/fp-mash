@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fp_mash/services/directory_service.dart';
 import 'package:fp_mash/services/dsk_services_shell.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,6 +28,8 @@ class _Step1ScreenState extends State<Step1Screen> {
   bool isLoading = false;
 
   final DskShellService _dskShellService = DskShellService();
+
+  final DirectoryService _directoryService = DirectoryService();
 
   /// Upload File from the directory 
   Future<void> _pickFile(bool isFirstFile) async {
@@ -84,9 +87,6 @@ class _Step1ScreenState extends State<Step1Screen> {
         Directory(inputFilePath).parent.path; // Ottieni la cartella del file
     String outputDirectory =
         '$inputDirectory/step1_dsk'; // Crea la cartella 'step1_dsk' dentro la cartella del file
-
-    // Assicurati che la directory di output esista
-    Directory(outputDirectory).createSync(recursive: true);
 
     // Genera il file HDF5
     String result =
@@ -365,7 +365,10 @@ class _Step1ScreenState extends State<Step1Screen> {
                 Tooltip(
                   message: 'Passa allo step successivo',
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+
+                      await _directoryService.createStepDirectory(_directoryService.step2Directory);
+
                       Navigator.pushNamed(context, '/step2');
                     },
                     child: const Text('Next >'),
