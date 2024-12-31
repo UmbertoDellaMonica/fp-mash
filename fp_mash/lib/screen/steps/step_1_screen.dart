@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:fp_mash/services/dsk_services_shell.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class Step1Screen extends StatefulWidget {
   @override
@@ -6,10 +11,107 @@ class Step1Screen extends StatefulWidget {
 }
 
 class _Step1ScreenState extends State<Step1Screen> {
-  
-  bool isTextInput1 = true;
-  bool isTextInput2 = true;
   bool isStep1Completed = false;
+  
+  String? filePath1;
+  String? filePath2;
+
+  String? h5FilePath1;
+  String? h5FilePath2;
+
+  String dskOutput = '';
+  bool isLoading = false;
+
+  final DskShellService _dskShellService = DskShellService();
+
+  Future<void> _pickFile(bool isFirstFile) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+      if (result != null) {
+        String? filePath = result.files.single.path;
+
+        print("File Path : $filePath");
+
+        setState(() {
+          if (isFirstFile) {
+            filePath1 = filePath;
+          } else {
+            filePath2 = filePath;
+          }
+        });
+
+        showToast(
+          "File uploaded successfully!",
+          duration: const Duration(seconds: 2),
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.green,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+      } else {
+        showToast(
+          "Failed to determine save directory",
+          duration: const Duration(seconds: 2),
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.red,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+      }
+    } catch (e) {
+      showToast(
+        "Failed to pick file: $e",
+        duration: const Duration(seconds: 2),
+        position: ToastPosition.bottom,
+        backgroundColor: Colors.red,
+        textStyle: const TextStyle(color: Colors.white),
+      );
+    }
+  }
+
+  Future<void> _generateH5File(bool isFirstFile) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    String inputFilePath = isFirstFile ? filePath1! : filePath2!;
+    String inputDirectory = Directory(inputFilePath).parent.path; // Ottieni la cartella del file
+    String outputDirectory = '$inputDirectory/step1_dsk';  // Crea la cartella 'step1_dsk' dentro la cartella del file
+
+    // Assicurati che la directory di output esista
+    Directory(outputDirectory).createSync(recursive: true);
+
+    // Genera il file HDF5
+    String result =
+        await _dskShellService.generateH5File(inputFilePath, outputDirectory);
+
+    setState(() {
+      isLoading = false;
+      if (result.startsWith('Error:') || result.startsWith('Exception:')) {
+        showToast(
+          result,
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.red,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+      } else {
+        showToast(
+          "File HDF5 generato con successo!",
+          duration: const Duration(seconds: 3),
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.green,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+        if (isFirstFile) {
+          print("Output Directory : $outputDirectory");
+          h5FilePath1 =
+              '$outputDirectory/${filePath1!.split('/').last.split('.').first}.h5';
+        } else {
+          h5FilePath2 =
+              '$outputDirectory/${filePath2!.split('/').last.split('.').first}.h5';
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,159 +121,138 @@ class _Step1ScreenState extends State<Step1Screen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Insert the FASTA genetic sequence in your preferred mode to extract k-mers + frequency using DSK.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18.0),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: <Widget>[
-
-                /// Sequence Genetic 1 - Insert Input 
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      const Text('Genetic Sequence 1', style: TextStyle(fontSize: 18.0)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Checkbox(
-                            value: isTextInput1,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                isTextInput1 = value!;
-                              });
-                            },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Text(
+                'Insert the FASTA genetic sequence in your preferred mode to extract k-mers + frequency using DSK.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18.0),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: <Widget>[
+                  /// Sequence Genetic 1 - Insert Input
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        const Text('Genetic Sequence 1',
+                            style: TextStyle(fontSize: 18.0)),
+                        ElevatedButton(
+                          onPressed: () {
+                            _pickFile(true);
+                          },
+                          child: const Text('Upload File'),
+                        ),
+                        if (filePath1 != null) ...[
+                          const SizedBox(height: 10),
+                          const Icon(Icons.description,
+                              size: 40, color: Colors.blue),
+                          const SizedBox(height: 10),
+                          Text(
+                            filePath1!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16.0),
                           ),
-                          const Text('Text Input'),
-                          const SizedBox(width: 10),
-                          Checkbox(
-                            value: !isTextInput1,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                isTextInput1 = !value!;
-                              });
+                          ElevatedButton(
+                            onPressed: () {
+                              _generateH5File(true);
                             },
+                            child: const Text('Generate HDF5 File'),
                           ),
-                          const Text('File Input'),
-                        ],
-                      ),
-                      isTextInput1
-                          ? const TextField(
-                              maxLines: 5,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Enter genetic sequence',
-                              ),
-                            )
-                          : ElevatedButton(
-                              onPressed: () {
-                                // Implement file picker here
-                              },
-                              child: const Text('Upload File'),
+                          if (h5FilePath1 != null) ...[
+                            const SizedBox(height: 10),
+                            const Icon(Icons.file_copy,
+                                size: 40, color: Colors.green),
+                            const SizedBox(height: 10),
+                            Text(
+                              h5FilePath1!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 16.0),
                             ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 20),
-                /// Sequence Genetic 2 - Insert Input 
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      const Text('Genetic Sequence 2', style: TextStyle(fontSize: 18.0)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Checkbox(
-                            value: isTextInput2,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                isTextInput2 = value!;
-                              });
-                            },
-                          ),
-                          const Text('Text Input'),
-                          const SizedBox(width: 10),
-                          Checkbox(
-                            value: !isTextInput2,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                isTextInput2 = !value!;
-                              });
-                            },
-                          ),
-                          const Text('File Input'),
+                          ],
                         ],
-                      ),
-                      isTextInput2
-                          ? const TextField(
-                              maxLines: 5,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Enter genetic sequence',
-                              ),
-                            )
-                          : ElevatedButton(
-                              onPressed: () {
-                                // Implement file picker here
-                              },
-                              child: const Text('Upload File'),
-                            ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+                  const SizedBox(width: 20),
 
-            /// Execute Action 
-            ElevatedButton(
-              onPressed: () {
+                  /// Sequence Genetic 2 - Insert Input
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        const Text('Genetic Sequence 2',
+                            style: TextStyle(fontSize: 18.0)),
+                        ElevatedButton(
+                          onPressed: () {
+                            _pickFile(false);
+                          },
+                          child: const Text('Upload File'),
+                        ),
+                        if (filePath2 != null) ...[
+                          const SizedBox(height: 10),
+                          const Icon(Icons.description,
+                              size: 40, color: Colors.blue),
+                          const SizedBox(height: 10),
+                          Text(
+                            filePath2!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16.0),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              _generateH5File(false);
+                            },
+                            child: const Text('Generate HDF5 File'),
+                          ),
+                          if (h5FilePath2 != null) ...[
+                            const SizedBox(height: 10),
+                            const Icon(Icons.file_copy,
+                                size: 40, color: Colors.green),
+                            const SizedBox(height: 10),
+                            Text(
+                              h5FilePath2!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 16.0),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-                // PRE-CONDITION:
-                // - If the user enters the genetic sequence in text format instead of via file, then
-                //   create the respective files seq-genetic1.fasta and seq-genetic2.fasta and then
-                //   pass them to the DSK program.
-                //
-                // - Otherwise, directly pass the specific files that were uploaded.
+              /// Show DSK Help
+              ElevatedButton(
+                onPressed: _showDskHelp,
+                child: isLoading
+                    ? const CircularProgressIndicator()
+                    : const Text('Show DSK Help'),
+              ),
+              const SizedBox(height: 20),
 
-                // TODO: Implement k-mer identification logic here using the following steps:
-                // 1. Execute DSK to obtain k-mers in HDF5 format:
-                //    ./dsk -file <file.fasta> -kmer-size <k>
-                //    Example: ./dsk -file A1.fa,A2.fa,A3.fa -kmer-size 31
-                //    (The output is a .h5 file)
-                //
-                // 2. Convert the .h5 file to .txt format:
-                //    ./dsk2ascii -file output.h5 -out output.txt
-                //    (This needs to be done for both genetic sequences 1 and 2)
-                //
-                // 3. The resulting files will be used in Step 2 of the application.
-
-                setState(() {
-                  isStep1Completed = true;
-                });
-              },
-              child: const Text('Execute k-mer + frequency identification'),
-            ),
-            const SizedBox(height: 20),
-
-            /// Next - Step -> Going to Step 2 
-            ElevatedButton(
-              onPressed: isStep1Completed ? () {
-                // Navigate to the next step in the pipeline
-                Navigator.pushNamed(context, '/step2');
-              } : null,
-              child: const Text('Next >'),
-            ),
-          ],
+              /// Next - Step -> Going to Step 2
+              ElevatedButton(
+                onPressed: isStep1Completed
+                    ? () {
+                        // Navigate to the next step in the pipeline
+                        Navigator.pushNamed(context, '/step2');
+                      }
+                    : null,
+                child: const Text('Next >'),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _showDskHelp() {
   }
 }

@@ -18,8 +18,6 @@ class MashShellService {
         result.join('\n');
         ProcessResult procText = result.single;
         String text = procText.stdout.toString();
-        print("Result of : $text");
-
         return text;
       } else {
         return 'No output from mash --license';
