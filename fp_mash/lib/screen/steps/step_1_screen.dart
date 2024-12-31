@@ -12,14 +12,18 @@ class Step1Screen extends StatefulWidget {
 
 class _Step1ScreenState extends State<Step1Screen> {
   bool isStep1Completed = false;
-  
+
   String? filePath1;
   String? filePath2;
 
   String? h5FilePath1;
   String? h5FilePath2;
 
+  String? filePath1ConversionFasta;
+  String? filePath2ConversionFasta;
+
   String dskOutput = '';
+
   bool isLoading = false;
 
   final DskShellService _dskShellService = DskShellService();
@@ -74,8 +78,10 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
 
     String inputFilePath = isFirstFile ? filePath1! : filePath2!;
-    String inputDirectory = Directory(inputFilePath).parent.path; // Ottieni la cartella del file
-    String outputDirectory = '$inputDirectory/step1_dsk';  // Crea la cartella 'step1_dsk' dentro la cartella del file
+    String inputDirectory =
+        Directory(inputFilePath).parent.path; // Ottieni la cartella del file
+    String outputDirectory =
+        '$inputDirectory/step1_dsk'; // Crea la cartella 'step1_dsk' dentro la cartella del file
 
     // Assicurati che la directory di output esista
     Directory(outputDirectory).createSync(recursive: true);
@@ -113,6 +119,45 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
   }
 
+
+    // Funzione per la conversione HDF5 in FASTA
+  Future<void> _convertH5ToFasta(String h5FilePath, bool isFirstFile) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    String inputDirectory = Directory(h5FilePath).parent.path;
+    String outputFastaFile = '$inputDirectory/${h5FilePath.split('/').last.split('.').first}-extract.fasta';
+
+    // Esegui il comando dsk2ascii per la conversione
+    String result = await _dskShellService.convertH5ToFasta(h5FilePath, outputFastaFile);
+
+    setState(() {
+      isLoading = false;
+      if (result.startsWith('Error:') || result.startsWith('Exception:')) {
+        showToast(
+          result,
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.red,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+      } else {
+        showToast(
+          "File FASTA estratto con successo!",
+          duration: const Duration(seconds: 3),
+          position: ToastPosition.bottom,
+          backgroundColor: Colors.green,
+          textStyle: const TextStyle(color: Colors.white),
+        );
+        if (isFirstFile) {
+          filePath1ConversionFasta = outputFastaFile;
+        } else {
+          filePath2ConversionFasta = outputFastaFile;
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,18 +167,19 @@ class _Step1ScreenState extends State<Step1Screen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
+          // Render content as scrollable
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const Text(
-                'Insert the FASTA genetic sequence in your preferred mode to extract k-mers + frequency using DSK.',
+                'Insert the FASTA genetic sequence to extract k-mers + frequency using DSK.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18.0),
               ),
               const SizedBox(height: 20),
               Row(
                 children: <Widget>[
-                  /// Sequence Genetic 1 - Insert Input
+                  // Sequence Genetic 1 - Insert Input
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -172,6 +218,24 @@ class _Step1ScreenState extends State<Step1Screen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 16.0),
                             ),
+                            // Aggiungi il bottone per la conversione da H5 a FASTA
+                            ElevatedButton(
+                              onPressed: () {
+                                _convertH5ToFasta(h5FilePath1!, true);
+                              },
+                              child: const Text('Convert H5 to FASTA'),
+                            ),
+                            if (filePath1ConversionFasta != null) ...[
+                              const SizedBox(height: 10),
+                              const Icon(Icons.file_copy,
+                                  size: 40, color: Colors.orange),
+                              const SizedBox(height: 10),
+                              Text(
+                                filePath1ConversionFasta!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16.0),
+                              ),
+                            ],
                           ],
                         ],
                       ],
@@ -179,7 +243,7 @@ class _Step1ScreenState extends State<Step1Screen> {
                   ),
                   const SizedBox(width: 20),
 
-                  /// Sequence Genetic 2 - Insert Input
+                  // Sequence Genetic 2 - Insert Input
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -227,7 +291,7 @@ class _Step1ScreenState extends State<Step1Screen> {
               ),
               const SizedBox(height: 20),
 
-              /// Show DSK Help
+              // Show DSK Help
               ElevatedButton(
                 onPressed: _showDskHelp,
                 child: isLoading
@@ -236,7 +300,7 @@ class _Step1ScreenState extends State<Step1Screen> {
               ),
               const SizedBox(height: 20),
 
-              /// Next - Step -> Going to Step 2
+              // Next - Step -> Going to Step 2
               ElevatedButton(
                 onPressed: isStep1Completed
                     ? () {
@@ -254,5 +318,6 @@ class _Step1ScreenState extends State<Step1Screen> {
   }
 
   void _showDskHelp() {
+    // Implement DSK help functionality if necessary
   }
 }
