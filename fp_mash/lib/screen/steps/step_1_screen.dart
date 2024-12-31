@@ -157,7 +157,7 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
   }
 
-  Future<void> _showDskHelp() async {
+  Future<void> _verifyStep1() async {
     if (filePath1ConversionFasta != null && filePath2ConversionFasta != null) {
       showToast(
         "Premi Next > per passare allo step successivo",
@@ -351,8 +351,8 @@ class _Step1ScreenState extends State<Step1Screen> {
               Tooltip(
                 message: 'Visualizza l\'aiuto per il comando DSK',
                 child: ElevatedButton(
-                  onPressed: _showDskHelp,
-                  child: const Text('DSK Help'),
+                  onPressed: _verifyStep1,
+                  child: const Text('Verify Step1'),
                 ),
               ),
               const SizedBox(height: 20),
