@@ -256,7 +256,7 @@ class _Step1ScreenState extends State<Step1Screen> {
                           },
                           child: const Text('Upload File'),
                         ),
-                        if (filePath2 != null) ...[
+                        if (filePath2!= null) ...[
                           const SizedBox(height: 10),
                           const Icon(Icons.description,
                               size: 40, color: Colors.blue),
@@ -282,6 +282,24 @@ class _Step1ScreenState extends State<Step1Screen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 16.0),
                             ),
+                            // Aggiungi il bottone per la conversione da H5 a FASTA
+                            ElevatedButton(
+                              onPressed: () {
+                                _convertH5ToFasta(h5FilePath2!, false);
+                              },
+                              child: const Text('Convert H5 to FASTA'),
+                            ),
+                            if (filePath2ConversionFasta != null) ...[
+                              const SizedBox(height: 10),
+                              const Icon(Icons.file_copy,
+                                  size: 40, color: Colors.orange),
+                              const SizedBox(height: 10),
+                              Text(
+                                filePath2ConversionFasta!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 16.0),
+                              ),
+                            ],
                           ],
                         ],
                       ],
