@@ -119,8 +119,7 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
   }
 
-
-    // Funzione per la conversione HDF5 in FASTA
+  // Funzione per la conversione HDF5 in FASTA
   Future<void> _convertH5ToFasta(String h5FilePath, bool isFirstFile) async {
     setState(() {
       isLoading = true;
@@ -158,6 +157,29 @@ class _Step1ScreenState extends State<Step1Screen> {
     });
   }
 
+  Future<void> _showDskHelp() async {
+    if (filePath1ConversionFasta != null && filePath2ConversionFasta != null) {
+      showToast(
+        "Premi Next > per passare allo step successivo",
+        duration: const Duration(seconds: 3),
+        position: ToastPosition.bottom,
+        backgroundColor: Colors.green,
+        textStyle: const TextStyle(color: Colors.white),
+      );
+      setState(() {
+        isStep1Completed = true;
+      });
+    } else {
+      showToast(
+        "Non abbiamo eseguito tutti i passaggi",
+        duration: const Duration(seconds: 3),
+        position: ToastPosition.bottom,
+        backgroundColor: Colors.red,
+        textStyle: const TextStyle(color: Colors.white),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,11 +208,14 @@ class _Step1ScreenState extends State<Step1Screen> {
                       children: <Widget>[
                         const Text('Genetic Sequence 1',
                             style: TextStyle(fontSize: 18.0)),
-                        ElevatedButton(
-                          onPressed: () {
-                            _pickFile(true);
-                          },
-                          child: const Text('Upload File'),
+                        Tooltip(
+                          message: 'Carica il file di sequenza genetica 1',
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _pickFile(true);
+                            },
+                            child: const Text('Upload File'),
+                          ),
                         ),
                         if (filePath1 != null) ...[
                           const SizedBox(height: 10),
@@ -202,11 +227,14 @@ class _Step1ScreenState extends State<Step1Screen> {
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16.0),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              _generateH5File(true);
-                            },
-                            child: const Text('Generate HDF5 File'),
+                          Tooltip(
+                            message: 'Genera il file HDF5 dalla sequenza genetica 1',
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _generateH5File(true);
+                              },
+                              child: const Text('Generate HDF5 File'),
+                            ),
                           ),
                           if (h5FilePath1 != null) ...[
                             const SizedBox(height: 10),
@@ -219,11 +247,14 @@ class _Step1ScreenState extends State<Step1Screen> {
                               style: const TextStyle(fontSize: 16.0),
                             ),
                             // Aggiungi il bottone per la conversione da H5 a FASTA
-                            ElevatedButton(
-                              onPressed: () {
-                                _convertH5ToFasta(h5FilePath1!, true);
-                              },
-                              child: const Text('Convert H5 to FASTA'),
+                            Tooltip(
+                              message: 'Converti il file HDF5 in file FASTA',
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _convertH5ToFasta(h5FilePath1!, true);
+                                },
+                                child: const Text('Convert H5 to FASTA'),
+                              ),
                             ),
                             if (filePath1ConversionFasta != null) ...[
                               const SizedBox(height: 10),
@@ -250,13 +281,16 @@ class _Step1ScreenState extends State<Step1Screen> {
                       children: <Widget>[
                         const Text('Genetic Sequence 2',
                             style: TextStyle(fontSize: 18.0)),
-                        ElevatedButton(
-                          onPressed: () {
-                            _pickFile(false);
-                          },
-                          child: const Text('Upload File'),
+                        Tooltip(
+                          message: 'Carica il file di sequenza genetica 2',
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _pickFile(false);
+                            },
+                            child: const Text('Upload File'),
+                          ),
                         ),
-                        if (filePath2!= null) ...[
+                        if (filePath2 != null) ...[
                           const SizedBox(height: 10),
                           const Icon(Icons.description,
                               size: 40, color: Colors.blue),
@@ -266,11 +300,14 @@ class _Step1ScreenState extends State<Step1Screen> {
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16.0),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              _generateH5File(false);
-                            },
-                            child: const Text('Generate HDF5 File'),
+                          Tooltip(
+                            message: 'Genera il file HDF5 dalla sequenza genetica 2',
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _generateH5File(false);
+                              },
+                              child: const Text('Generate HDF5 File'),
+                            ),
                           ),
                           if (h5FilePath2 != null) ...[
                             const SizedBox(height: 10),
@@ -283,11 +320,14 @@ class _Step1ScreenState extends State<Step1Screen> {
                               style: const TextStyle(fontSize: 16.0),
                             ),
                             // Aggiungi il bottone per la conversione da H5 a FASTA
-                            ElevatedButton(
-                              onPressed: () {
-                                _convertH5ToFasta(h5FilePath2!, false);
-                              },
-                              child: const Text('Convert H5 to FASTA'),
+                            Tooltip(
+                              message: 'Converti il file HDF5 in file FASTA',
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _convertH5ToFasta(h5FilePath2!, false);
+                                },
+                                child: const Text('Convert H5 to FASTA'),
+                              ),
                             ),
                             if (filePath2ConversionFasta != null) ...[
                               const SizedBox(height: 10),
@@ -308,34 +348,30 @@ class _Step1ScreenState extends State<Step1Screen> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Show DSK Help
-              ElevatedButton(
-                onPressed: _showDskHelp,
-                child: isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Show DSK Help'),
+              Tooltip(
+                message: 'Visualizza l\'aiuto per il comando DSK',
+                child: ElevatedButton(
+                  onPressed: _showDskHelp,
+                  child: const Text('DSK Help'),
+                ),
               ),
               const SizedBox(height: 20),
-
-              // Next - Step -> Going to Step 2
-              ElevatedButton(
-                onPressed: isStep1Completed
-                    ? () {
-                        // Navigate to the next step in the pipeline
-                        Navigator.pushNamed(context, '/step2');
-                      }
-                    : null,
-                child: const Text('Next >'),
-              ),
+              if (isStep1Completed)
+                Tooltip(
+                  message: 'Passa allo step successivo',
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/step2');
+                    },
+                    child: const Text('Next >'),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              if (isLoading) const CircularProgressIndicator(),
             ],
           ),
         ),
       ),
     );
-  }
-
-  void _showDskHelp() {
-    // Implement DSK help functionality if necessary
   }
 }
