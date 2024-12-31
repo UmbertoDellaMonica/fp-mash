@@ -9,6 +9,7 @@ class DirectoryService {
   final String step1Directory = "step1_dsk";
   final String step2Directory = "step2_find_common_kmers";
   final String step3Directory = "step3_lyn2vec";
+  final String step4Directory = "step4_mash_sketch";
 
 
 

@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fp_mash/services/directory_service.dart';
 import 'package:fp_mash/services/lyn2vec_services_shell.dart';
+import 'package:fp_mash/services/mash_services_shell.dart';
 import 'package:oktoast/oktoast.dart';
 import 'dart:io';
 
-class Step3Screen extends StatefulWidget {
-  const Step3Screen({super.key});
+class Step4Screen extends StatefulWidget {
+  const Step4Screen({super.key});
 
   @override
-  _Step3ScreenState createState() => _Step3ScreenState();
+  _Step4ScreenState createState() => _Step4ScreenState();
 }
 
-class _Step3ScreenState extends State<Step3Screen> {
-  bool isStep3Completed = false;
+class _Step4ScreenState extends State<Step4Screen> {
+  bool isStep4Completed = false;
   
   String? filePath1;
   String? filePath2;
@@ -23,7 +24,9 @@ class _Step3ScreenState extends State<Step3Screen> {
   String? h5FilePath2;
 
   /// Aggiungi il servizio Lyn2vecShellService
-  final Lyn2vecShellService _lyn2vecShellService = Lyn2vecShellService();
+  ///final Lyn2vecShellService _lyn2vecShellService = Lyn2vecShellService();
+
+  final MashShellService _mashShellService = MashShellService();
 
   /// Directory Service
   final DirectoryService _directoryService = DirectoryService();
@@ -52,12 +55,12 @@ class _Step3ScreenState extends State<Step3Screen> {
     'CFL_ICFL_COMB-30'
   ];
 
-  Future<void> _showLyn2vecHelp() async {
+  Future<void> _showMashLicense() async {
     setState(() {
       isLoading = true;
     });
 
-    final output = await _lyn2vecShellService.showHelp();
+    final output = await _mashShellService.showLicense();
 
     setState(() {
       licenseOutput = output;
@@ -69,7 +72,7 @@ class _Step3ScreenState extends State<Step3Screen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Lyn2vec Help Information'),
+          title: const Text('Mash License  Information'),
           content: SingleChildScrollView(
             child: Text(
               licenseOutput,
@@ -254,12 +257,12 @@ class _Step3ScreenState extends State<Step3Screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Step 3 - Lyn2vec Fingerprints'),
+        title: const Text('Step 4 - Mash Generate Sketch File'),
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
-            onPressed: _showLyn2vecHelp,
-            tooltip: 'Show Lyn2vec Help',
+            onPressed: _showMashLicense,
+            tooltip: 'Show Mash License',
           ),
         ],
       ),
@@ -272,11 +275,11 @@ class _Step3ScreenState extends State<Step3Screen> {
             children: <Widget>[
               const Divider(),
               const Text(
-                'Lyn2vec Upload File and Generate FingerPrints!',
+                'Mash Upload File and Generate Sketch-FingerPrints File!',
                 style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
               const Text(
-                'Upload the files splitted from Step 2. For each file generate a fingerprint file',
+                'Upload the files splitted from Step 2. For each file generate a Sketch-Fingerprint file',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18.0),
               ),

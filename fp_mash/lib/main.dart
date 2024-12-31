@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fp_mash/screen/steps/step_2_screen.dart';
 import 'package:fp_mash/screen/steps/step_3_screen.dart';
+import 'package:fp_mash/screen/steps/step_4_screen.dart';
 import 'package:oktoast/oktoast.dart';
 
 import 'screen/home/home_screen.dart';
@@ -51,6 +52,7 @@ class _MyAppState extends State<MyApp> {
         '/step1': (context) => Step1Screen(),
         '/step2': (context) => Step2Screen(),
         '/step3': (context) => Step3Screen(),
+        '/step4': (context) => Step4Screen(),
       },
       debugShowCheckedModeBanner: false,
     );
