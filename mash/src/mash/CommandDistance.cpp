@@ -2,15 +2,17 @@
 #include "Sketch.h"
 #include "SketchFingerPrint.h"
 #include "HashList.h"
-#include <iostream>
-#include <zlib.h>
 #include "ThreadPool.h"
 #include "sketchParameterSetup.h"
+
+#include <zlib.h>
 #include <math.h>
 #include <unordered_set>
 #include <iomanip>
 #include <vector>
 #include <stdexcept>
+#include <iostream>
+#include <vector>
 #include <algorithm>
 
 
@@ -435,7 +437,6 @@ int CommandDistance::runFingerPrint() const{
     
     bool method_exact = options.at("exact-similarity").active;
     if(method_exact){
-        cout<< "Sono qua Metodo 1!"<< endl;
     
     ThreadPool<CompareFingerPrintInput, CompareFingerPrintOutput> threadPool(compareFingerPrintExcatSimilarity, threads);
     vector<string> queryFiles;
@@ -747,7 +748,6 @@ int CommandDistance::runFingerPrintSorted() const{
     
     bool method_exact = options.at("exact-similarity").active;
     if(method_exact){
-        cout<< "Sono qua Metodo 1!"<< endl;
     
     ThreadPool<CompareFingerPrintInput, CompareFingerPrintOutput> threadPool(compareFingerPrintExcatSimilarity, threads);
     vector<string> queryFiles;
@@ -1349,18 +1349,18 @@ double jaccardSimilarityAndCommon(
         largerSet = set1;
         smallerSet = set2;
 
-        cout<<"Sono qui Maggiore!"<<endl;
+        //cout<<"Sono qui Maggiore!"<<endl;
 
     }else if(set1.size()<set2.size()){
         
         largerSet = set2;
         smallerSet= set1;
 
-        cout<<"Sono qui Minore !"<<endl;
+        //cout<<"Sono qui Minore !"<<endl;
 
     }else{
 
-        cout<<"Sono qui Uguale !"<<endl;
+        //cout<<"Sono qui Uguale !"<<endl;
         largerSet = set2;
         smallerSet = set1;
     }
@@ -1469,7 +1469,7 @@ int calculateIntersection(const std::vector<HashList>& largerSet, const std::vec
             }
         }
     }
-    std::cout << "Size dell'Intersezione: " << intersectionSize << std::endl;
+    //std::cout << "Size dell'Intersezione: " << intersectionSize << std::endl;
     return intersectionSize;
 }
 
@@ -1487,123 +1487,12 @@ int hashEquals32(uint32_t hash1, uint32_t hash2, int hashSize) {
 }
 
 
-
-// Calcolo dove avviene la funzione di calcolo di Hamming Distance
-/*
-int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
-    int totalDistance = 0;
-    size_t minSize = std::min(list1.size(), list2.size());
-
-    
-    bool tagUse64 = list1.get64() && list2.get64();
-    if (list1.get64() != list2.get64()) {
-        throw std::invalid_argument("Both HashLists must use the same hash size (either 64-bit or 32-bit).");
-    }
-
-
-    for (size_t i = 0; i < minSize; ++i) {
-        if (tagUse64) {
-            if (list1.at(i).hash64 != list2.at(i).hash64)
-                totalDistance += 1;
-        } else {
-            if (list1.at(i).hash32 != list2.at(i).hash32)
-                totalDistance += 1;
-        }
-    }
-
-   
-    size_t remainingElements = std::max(list1.size(), list2.size()) - minSize;
-    totalDistance += remainingElements;
-
-   // std::cout << "Total distance: " << totalDistance << std::endl;
-    return totalDistance;
-}
-*/
-
-
-// FUNZIONE PER IL CALCOLO DI JACCARD
-int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
-    // Calcola la distanza di Jaccard tra due HashList
-    int intersectionCount = 0;
-    int unionCount = 0;
-
-    // Verifica che entrambe le liste utilizzino lo stesso tipo di hash (64-bit o 32-bit)
-    bool tagUse64 = list1.get64() && list2.get64();
-    if (list1.get64() != list2.get64()) {
-        throw std::invalid_argument("Both HashLists must use the same hash size (either 64-bit or 32-bit).");
-    }
-
-    // Utilizza un set per contare l'unione e l'intersezione degli hash, distinguendo tra 32-bit e 64-bit
-    if (tagUse64) {
-        // Se usiamo hash a 64-bit
-        std::unordered_set<uint64_t> unionSet64;
-        std::unordered_set<uint64_t> intersectionSet64;
-
-        // Aggiunge gli hash dalla prima lista all'unionSet
-        for (size_t i = 0; i < list1.size(); ++i) {
-            unionSet64.insert(list1.at(i).hash64);
-        }
-
-        // Controlla l'intersezione e aggiunge gli hash dalla seconda lista all'unionSet
-        for (size_t i = 0; i < list2.size(); ++i) {
-            uint64_t hash = list2.at(i).hash64;
-            if (unionSet64.find(hash) != unionSet64.end()) {
-                intersectionSet64.insert(hash);
-            }
-            unionSet64.insert(hash);
-        }
-
-        // Calcola l'intersezione e l'unione per hash a 64-bit
-        intersectionCount = intersectionSet64.size();
-        unionCount = unionSet64.size();
-    } else {
-        // Se usiamo hash a 32-bit
-        std::unordered_set<uint32_t> unionSet32;
-        std::unordered_set<uint32_t> intersectionSet32;
-
-        // Aggiunge gli hash dalla prima lista all'unionSet
-        for (size_t i = 0; i < list1.size(); ++i) {
-            unionSet32.insert(list1.at(i).hash32);
-        }
-
-        // Controlla l'intersezione e aggiunge gli hash dalla seconda lista all'unionSet
-        for (size_t i = 0; i < list2.size(); ++i) {
-            uint32_t hash = list2.at(i).hash32;
-            if (unionSet32.find(hash) != unionSet32.end()) {
-                intersectionSet32.insert(hash);
-            }
-            unionSet32.insert(hash);
-        }
-
-        // Calcola l'intersezione e l'unione per hash a 32-bit
-        intersectionCount = intersectionSet32.size();
-        unionCount = unionSet32.size();
-    }
-
-    // Se non ci sono elementi nell'unione, la distanza è 0
-    if (unionCount == 0) {
-        return 0;
-    }
-
-    // Calcola e restituisce la distanza di Jaccard
-    double jaccardDistance = 1.0 - (double(intersectionCount) / unionCount);
-    return static_cast<int>(jaccardDistance);
-}
-
-
-
-
-
-
 //FUNZIONE DI DISTANZA TRA VETTORI CON DISTANZA DI EDIT
 
-#include "HashList.h"
-#include <vector>
-#include <stdexcept>
-#include <algorithm>
+
 
  // Funzione per calcolare la distanza di Levenshtein tra due HashList
-/*int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
+int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
     size_t m = list1.size();
     size_t n = list2.size();
 
@@ -1673,13 +1562,13 @@ int distanceBetweenHashLists(const HashList& list1, const HashList& list2) {
             std::cout << std::setw(10) << matrix[i][j];
         }
         std::cout << "\n";
-    }
+    }*/
 
     //cout << "distanza minima: " << matrix[m][n] << endl;
     // La distanza finale si trova nell'ultima cella della matrice
     
     return matrix[m][n];
-}*/
+}
 
 
 

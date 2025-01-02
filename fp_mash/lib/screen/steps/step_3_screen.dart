@@ -471,6 +471,17 @@ class _Step3ScreenState extends State<Step3Screen> {
                     : null,
                 child: const Text('Proceed to Step 4'),
               ),
+              /// TODO : Delete this Step 
+            ElevatedButton(
+              onPressed: () async {
+
+                await _directoryService.createStepDirectory(_directoryService.step4Directory);
+
+                // Navigate to the next step
+                Navigator.pushNamed(context, '/step4');
+              },
+              child: const Text('Next >'),
+            ),
             ],
           ),
         ),

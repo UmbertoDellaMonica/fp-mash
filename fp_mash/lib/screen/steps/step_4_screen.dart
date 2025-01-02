@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fp_mash/services/directory_service.dart';
-import 'package:fp_mash/services/lyn2vec_services_shell.dart';
 import 'package:fp_mash/services/mash_services_shell.dart';
 import 'package:oktoast/oktoast.dart';
 import 'dart:io';
@@ -16,44 +15,19 @@ class Step4Screen extends StatefulWidget {
 
 class _Step4ScreenState extends State<Step4Screen> {
   bool isStep4Completed = false;
-  
+
   String? filePath1;
   String? filePath2;
 
-  String? h5FilePath1;
-  String? h5FilePath2;
-
-  /// Aggiungi il servizio Lyn2vecShellService
-  ///final Lyn2vecShellService _lyn2vecShellService = Lyn2vecShellService();
+  String? sketchFilePath1;
+  String? sketchFilePath2;
 
   final MashShellService _mashShellService = MashShellService();
 
-  /// Directory Service
   final DirectoryService _directoryService = DirectoryService();
 
   String licenseOutput = '';
   bool isLoading = false;
-
-  /// Parameters for lyn2vec operation
-  String selectedOperation = 'basic';
-  bool revComb = false;
-  String selectedFactorization = 'CFL';
-  int nValue = 1;
-
-  /// Available options for lyn2vec operation and factorization
-  final List<String> lyn2vecOperations = ['basic', 'generalized', 'mapping'];
-  final List<String> factorizationOptions = [
-    'CFL',
-    'ICFL',
-    'CFL_ICFL-10',
-    'CFL_ICFL-20',
-    'CFL_ICFL-30',
-    'CFL_COMB',
-    'ICFL_COMB',
-    'CFL_ICFL_COMB-10',
-    'CFL_ICFL_COMB-20',
-    'CFL_ICFL_COMB-30'
-  ];
 
   Future<void> _showMashLicense() async {
     setState(() {
@@ -72,7 +46,7 @@ class _Step4ScreenState extends State<Step4Screen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Mash License  Information'),
+          title: const Text('Mash License Information'),
           content: SingleChildScrollView(
             child: Text(
               licenseOutput,
@@ -138,75 +112,44 @@ class _Step4ScreenState extends State<Step4Screen> {
     }
   }
 
-  Future<void> _generateFingerPrintsFile(bool isFirstFile) async {
+  Future<void> _generateSketchFile(bool isFirstFile) async {
     String outputDirectory = await _directoryService.getCommonDirectoryPath();
+    String step4Directory = _directoryService.step4Directory;
 
-    String step3Directory = _directoryService.step3Directory;
-    
-    /// Final Step Directory 
-    String stepDirectory = '$outputDirectory$step3Directory';
+    String stepDirectory = '$outputDirectory$step4Directory';
+    await _directoryService.createStepDirectory('step4_mash_sketch');
 
-    // Verifica e crea la directory di destinazione, se necessario
-    await _directoryService.createStepDirectory('step3_lyn2vec');
+    String inputFilePath = isFirstFile ? filePath1! : filePath2!;
 
-    String inputFastaFile = isFirstFile ? filePath1! : filePath2!;
+    // Ottieni il nome del file senza il percorso
+    String fileName = inputFilePath.split('/').last;
 
-    inputFastaFile = inputFastaFile.split('/').last;
+    // Trova l'ultimo punto per rimuovere l'estensione attuale
+    int extensionIndex = fileName.lastIndexOf('.');
+    String baseFileName = (extensionIndex == -1)
+        ? fileName
+        : fileName.substring(0, extensionIndex);
 
-    // Parametri per il comando lyn2vec
-    String typeOption = selectedOperation; // Selezione dell'operazione (es. 'basic')
+    // Aggiungi l'estensione .msh
+    String outputFileName = '$baseFileName.msh';
 
-    String pathDirectoryOption = outputDirectory; // La directory principale
+    // Crea il percorso completo per il file di output
+    String outputFilePath = '$stepDirectory/$outputFileName';
 
-    if(nValue<0 || nValue==0){
-      // Mostra un toast per confermare la generazione del file
-      showToast(
-        "nValue non può essere zero o minore di zero",
-        duration: const Duration(seconds: 2),
-        position: ToastPosition.bottom,
-        backgroundColor: Colors.red,
-        textStyle: const TextStyle(color: Colors.white),
-      );
-      return;
-    }
+    // Esegui il comando per generare gli sketch fingerprint
+    String result = await _mashShellService.generateSketchFingerPrints(
+        inputFilePath, outputFilePath);
 
-    String typeFactorizationOption = selectedFactorization; // Tipo di fattorizzazione
-
-    String nValueOption = nValue.toString(); // Valore di 'n'
-    String revCombOption = revComb ? 'true' : 'false'; // RevComb come booleano
-    String outputPathDirectoryOption = stepDirectory; // Percorso di output
-
-    // Esegui il comando per generare i fingerprint
-    String result = await _lyn2vecShellService.generateFingerPrints(
-      typeOption,
-      pathDirectoryOption,
-      inputFastaFile,
-      typeFactorizationOption,
-      nValueOption,
-      revCombOption,
-      outputPathDirectoryOption,
-    );
-
-    // Determina il nome dinamico del file in base al tipo di fattorizzazione
-    String generatedFileName =
-        '${inputFastaFile.replaceAll('.fasta', '')}-$typeFactorizationOption.txt';
-
-    // Aggiorna il percorso del file generato
     setState(() {
       if (isFirstFile) {
-
-        h5FilePath1 =
-            '$stepDirectory/$generatedFileName'; // Nome dinamico del file
+        sketchFilePath1 = outputFilePath;
       } else {
-        
-        h5FilePath2 =
-            '$stepDirectory/$generatedFileName'; // Nome dinamico del file
+        sketchFilePath2 = outputFilePath;
       }
     });
 
-    // Mostra un toast per confermare la generazione del file
     showToast(
-      "File generated successfully: $generatedFileName at $stepDirectory",
+      "Sketch file generated successfully at $outputFilePath",
       duration: const Duration(seconds: 2),
       position: ToastPosition.bottom,
       backgroundColor: Colors.green,
@@ -214,16 +157,13 @@ class _Step4ScreenState extends State<Step4Screen> {
     );
   }
 
-
   bool canProceedToNextStep = true;
 
-  // Funzione per verificare che i file esistano nella directory
   Future<bool> _checkFilesExist() async {
-    // Verifica che entrambi i file siano validi e che esistano
-    if (h5FilePath1 != null && h5FilePath2 != null) {
-      File file1 = File(h5FilePath1!);
-      File file2 = File(h5FilePath2!);
-      
+    if (sketchFilePath1 != null && sketchFilePath2 != null) {
+      File file1 = File(sketchFilePath1!);
+      File file2 = File(sketchFilePath2!);
+
       bool file1Exists = await file1.exists();
       bool file2Exists = await file2.exists();
 
@@ -243,15 +183,11 @@ class _Step4ScreenState extends State<Step4Screen> {
     return false;
   }
 
-  // Funzione per procedere al 4° step
   Future<void> _goToNextStep() async {
-    // Crea la directory per il 4° step
-    await _directoryService.createStepDirectory(_directoryService.step4Directory);
-    // Naviga al passo successivo
-    Navigator.pushNamed(context, '/step4');
-
+    await _directoryService
+        .createStepDirectory(_directoryService.step4Directory);
+    Navigator.pushNamed(context, '/step5');
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +222,6 @@ class _Step4ScreenState extends State<Step4Screen> {
               const SizedBox(height: 20),
               Row(
                 children: <Widget>[
-                  // Sequence Genetic 1 - Insert Input
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -304,43 +239,50 @@ class _Step4ScreenState extends State<Step4Screen> {
                         ),
                         if (filePath1 != null) ...[
                           const SizedBox(height: 10),
-                          const Icon(Icons.description,
-                              size: 40, color: Colors.blue),
+                          Column(
+                            children: [
+                              const Icon(Icons.insert_drive_file, size: 40.0, color: Colors.green,),
+                              const SizedBox(height: 5),
+                              Text(
+                                filePath1!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 12.0),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 10),
+                              Tooltip(
+                                message:
+                                    'Genera Sketch FingerPrint File per Sequenza Genetica 1',
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    _generateSketchFile(true);
+                                  },
+                                  child:
+                                      const Text('Generate Fingerprints File'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (sketchFilePath1 != null) ...[
                           const SizedBox(height: 10),
-                          Text(
-                            filePath1!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16.0),
+                          Column(
+                            children: [
+                              const Icon(Icons.description, size: 40.0, color: Colors.blueAccent,),
+                              const SizedBox(height: 5),
+                              Text(
+                                'Generated: $sketchFilePath1',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 12.0),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                          Tooltip(
-                            message:
-                                'Genera il file Fingerprints dalla sequenza genetica 1',
-                            child: ElevatedButton(
-                              onPressed: () {
-                                _generateFingerPrintsFile(true);
-                              },
-                              child: const Text('Generate Fingerprints File'),
-                            ),
-                          ),
-                          if (h5FilePath1 != null) ...[
-                            const SizedBox(height: 10),
-                            const Icon(Icons.file_copy,
-                                size: 40, color: Colors.green),
-                            const SizedBox(height: 10),
-                            Text(
-                              h5FilePath1!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 16.0),
-                            ),
-                            
-                          ],
                         ],
                       ],
                     ),
                   ),
-                  // Divider Width
                   const SizedBox(width: 20),
-                  // Sequence Genetic 2 - Insert Input
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -358,121 +300,60 @@ class _Step4ScreenState extends State<Step4Screen> {
                         ),
                         if (filePath2 != null) ...[
                           const SizedBox(height: 10),
-                          const Icon(Icons.description,
-                              size: 40, color: Colors.blue),
+                          Column(
+                            children: [
+                              const Icon(Icons.insert_drive_file, size: 40.0, color: Colors.green,),
+                              const SizedBox(height: 5),
+                              Text(
+                                filePath2!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 12.0),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 10),
+                              Tooltip(
+                                message:
+                                    'Genera Sketch FingerPrint File per Sequenza Genetica 2',
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    _generateSketchFile(false);
+                                  },
+                                  child:
+                                      const Text('Generate Fingerprints File'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (sketchFilePath2 != null) ...[
                           const SizedBox(height: 10),
-                          Text(
-                            filePath2!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16.0),
+                          Column(
+                            children: [
+                              const Icon(Icons.description, size: 40.0, color: Colors.blueAccent,),
+                              const SizedBox(height: 5),
+                              Text(
+                                'Generated: $sketchFilePath2',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 12.0),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                          Tooltip(
-                            message:
-                                'Genera il file Fingerprints dalla sequenza genetica 2',
-                            child: ElevatedButton(
-                              onPressed: () {
-                                _generateFingerPrintsFile(false);
-                              },
-                              child: const Text('Generate Fingerprints File'),
-                            ),
-                          ),
-                          if (h5FilePath2 != null) ...[
-                            const SizedBox(height: 10),
-                            const Icon(Icons.file_copy,
-                                size: 40, color: Colors.green),
-                            const SizedBox(height: 10),
-                            Text(
-                              h5FilePath2!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 16.0),
-                            ),
-                          ],
                         ],
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
               const Divider(),
-              const Text(
-                'Lyn2vec Parameters',
-                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: selectedOperation,
-                onChanged: (value) {
-                  setState(() {
-                    selectedOperation = value!;
-                  });
-                },
-                items: lyn2vecOperations.map((String operation) {
-                  return DropdownMenuItem<String>(
-                    value: operation,
-                    child: Text(operation),
-                  );
-                }).toList(),
-                decoration: const InputDecoration(
-                  labelText: 'Lyn2vec Operation',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SwitchListTile(
-                title: const Text('Rev_Comb'),
-                value: revComb,
-                onChanged: (value) {
-                  setState(() {
-                    revComb = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: selectedFactorization,
-                onChanged: (value) {
-                  setState(() {
-                    selectedFactorization = value!;
-                  });
-                },
-                items: factorizationOptions.map((String factorization) {
-                  return DropdownMenuItem<String>(
-                    value: factorization,
-                    child: Text(factorization),
-                  );
-                }).toList(),
-                decoration: const InputDecoration(
-                  labelText: 'Type of Factorization',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                initialValue: nValue.toString(),
-                decoration: const InputDecoration(
-                  labelText: 'N Value (Optional) Inserisci il numero di Sequenze Genetiche contenute all\' interno del file.',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  setState(() {
-                    nValue = int.tryParse(value) ?? 1;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              const Divider(),
-              // Button per verificare i file e procedere al 4° step
               ElevatedButton(
-                onPressed: canProceedToNextStep
-                    ? () async {
-                        if (await _checkFilesExist()) {
-                          await _goToNextStep();
-                        }
-                      }
-                    : null,
-                child: const Text('Proceed to Step 4'),
+                onPressed: () async {
+                  canProceedToNextStep = await _checkFilesExist();
+                  if (canProceedToNextStep) {
+                    await _goToNextStep();
+                  }
+                },
+                child: const Text('Next >'),
               ),
             ],
           ),
