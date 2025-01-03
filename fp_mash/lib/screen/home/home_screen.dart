@@ -13,16 +13,82 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-
-
   final DirectoryService _directoryService = DirectoryService(); // Istanza del servizio
+
+  // Funzione per navigare agli step
+  void _navigateToStep(int step) {
+    Navigator.pushNamed(context, '/step$step');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const Icon(Icons.science), // Aggiungi l'icona qui
         title: Text(widget.title), // Usa il titolo fornito dal widget
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu), // Icona hamburger
+              onPressed: () {
+                Scaffold.of(context).openDrawer(); // Apre il Drawer quando l'utente clicca sull'icona
+              },
+            );
+          },
+        ),
+      ),
+      drawer: Drawer( // Aggiungi il Drawer per il menu
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blueGrey,
+              ),
+              child: Text(
+                'fp-mash Navigation',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_one),
+              title: const Text('Step 1'),
+              onTap: () async {
+                _navigateToStep(1);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_two),
+              title: const Text('Step 2'),
+              onTap: () async {
+                _navigateToStep(2);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_3),
+              title: const Text('Step 3'),
+              onTap: () async {
+                _navigateToStep(3);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_4),
+              title: const Text('Step 4'),
+              onTap: () async {
+                _navigateToStep(4);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_5),
+              title: const Text('Step 5'),
+              onTap: () async {
+                _navigateToStep(5);
+              },
+            ),
+          ],
+        ),
       ),
       body: Center(
         child: Column(
@@ -67,4 +133,3 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-

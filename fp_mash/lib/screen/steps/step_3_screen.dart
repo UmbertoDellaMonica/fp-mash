@@ -15,7 +15,7 @@ class Step3Screen extends StatefulWidget {
 
 class _Step3ScreenState extends State<Step3Screen> {
   bool isStep3Completed = false;
-  
+
   String? filePath1;
   String? filePath2;
 
@@ -139,8 +139,8 @@ class _Step3ScreenState extends State<Step3Screen> {
     String outputDirectory = await _directoryService.getCommonDirectoryPath();
 
     String step3Directory = _directoryService.step3Directory;
-    
-    /// Final Step Directory 
+
+    /// Final Step Directory
     String stepDirectory = '$outputDirectory$step3Directory';
 
     // Verifica e crea la directory di destinazione, se necessario
@@ -151,11 +151,12 @@ class _Step3ScreenState extends State<Step3Screen> {
     inputFastaFile = inputFastaFile.split('/').last;
 
     // Parametri per il comando lyn2vec
-    String typeOption = selectedOperation; // Selezione dell'operazione (es. 'basic')
+    String typeOption =
+        selectedOperation; // Selezione dell'operazione (es. 'basic')
 
     String pathDirectoryOption = outputDirectory; // La directory principale
 
-    if(nValue<0 || nValue==0){
+    if (nValue < 0 || nValue == 0) {
       // Mostra un toast per confermare la generazione del file
       showToast(
         "nValue non può essere zero o minore di zero",
@@ -167,7 +168,8 @@ class _Step3ScreenState extends State<Step3Screen> {
       return;
     }
 
-    String typeFactorizationOption = selectedFactorization; // Tipo di fattorizzazione
+    String typeFactorizationOption =
+        selectedFactorization; // Tipo di fattorizzazione
 
     String nValueOption = nValue.toString(); // Valore di 'n'
     String revCombOption = revComb ? 'true' : 'false'; // RevComb come booleano
@@ -191,11 +193,9 @@ class _Step3ScreenState extends State<Step3Screen> {
     // Aggiorna il percorso del file generato
     setState(() {
       if (isFirstFile) {
-
         h5FilePath1 =
             '$stepDirectory/$generatedFileName'; // Nome dinamico del file
       } else {
-        
         h5FilePath2 =
             '$stepDirectory/$generatedFileName'; // Nome dinamico del file
       }
@@ -211,7 +211,6 @@ class _Step3ScreenState extends State<Step3Screen> {
     );
   }
 
-
   bool canProceedToNextStep = true;
 
   // Funzione per verificare che i file esistano nella directory
@@ -220,7 +219,7 @@ class _Step3ScreenState extends State<Step3Screen> {
     if (h5FilePath1 != null && h5FilePath2 != null) {
       File file1 = File(h5FilePath1!);
       File file2 = File(h5FilePath2!);
-      
+
       bool file1Exists = await file1.exists();
       bool file2Exists = await file2.exists();
 
@@ -243,12 +242,11 @@ class _Step3ScreenState extends State<Step3Screen> {
   // Funzione per procedere al 4° step
   Future<void> _goToNextStep() async {
     // Crea la directory per il 4° step
-    await _directoryService.createStepDirectory(_directoryService.step4Directory);
+    await _directoryService
+        .createStepDirectory(_directoryService.step4Directory);
     // Naviga al passo successivo
     Navigator.pushNamed(context, '/step4');
-
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -329,7 +327,6 @@ class _Step3ScreenState extends State<Step3Screen> {
                               textAlign: TextAlign.center,
                               style: const TextStyle(fontSize: 16.0),
                             ),
-                            
                           ],
                         ],
                       ],
@@ -448,7 +445,8 @@ class _Step3ScreenState extends State<Step3Screen> {
               TextFormField(
                 initialValue: nValue.toString(),
                 decoration: const InputDecoration(
-                  labelText: 'N Value (Optional) Inserisci il numero di Sequenze Genetiche contenute all\' interno del file.',
+                  labelText:
+                      'N Value (Optional) Inserisci il numero di Sequenze Genetiche contenute all\' interno del file.',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
@@ -466,22 +464,21 @@ class _Step3ScreenState extends State<Step3Screen> {
                     ? () async {
                         if (await _checkFilesExist()) {
                           await _goToNextStep();
+                        } else {
+                          
+                          showToast(
+                            "Non puoi Procedere al prossimo step. Genera i file delle FingerPrint!",
+                            duration: const Duration(seconds: 2),
+                            position: ToastPosition.bottom,
+                            backgroundColor: Colors.red,
+                            textStyle: const TextStyle(color: Colors.white),
+                          );
+
                         }
                       }
                     : null,
                 child: const Text('Proceed to Step 4'),
               ),
-              /// TODO : Delete this Step 
-            ElevatedButton(
-              onPressed: () async {
-
-                await _directoryService.createStepDirectory(_directoryService.step4Directory);
-
-                // Navigate to the next step
-                Navigator.pushNamed(context, '/step4');
-              },
-              child: const Text('Next >'),
-            ),
             ],
           ),
         ),

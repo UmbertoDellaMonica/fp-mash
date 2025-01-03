@@ -109,14 +109,13 @@ class _Step5ScreenState extends State<Step5Screen> {
         isLoading = true;
       });
 
-      final results = await _mashShellService.calculateDistance(filePath1!, filePath2!);
+      final results =
+          await _mashShellService.calculateDistance(filePath1!, filePath2!);
 
       setState(() {
         distanceResults = results;
         isLoading = false;
       });
-
-      _showResultsGraph(distanceResults);
     } else {
       showToast(
         "Please upload both sketch files before calculating.",
@@ -129,15 +128,21 @@ class _Step5ScreenState extends State<Step5Screen> {
   }
 
   void _showResultsGraph(String results) {
-    // Parse results for plotting
-    List<double> percentages = [];
+    List<String> ids = [];
+    List<double> distances = [];
     List<double> pValues = [];
+    List<double> numerators = [];
+    List<double> denominators = [];
 
     for (String line in results.split("\n")) {
       List<String> parts = line.split("\t");
-      if (parts.length >= 3) {
-        percentages.add(double.tryParse(parts[0]) ?? 0);
-        pValues.add(double.tryParse(parts[1]) ?? 0);
+      if (parts.length >= 4) {
+        ids.add("${parts[0]} - ${parts[1]}");
+        distances.add(double.tryParse(parts[2].replaceAll('%', '')) ?? 0);
+        pValues.add(double.tryParse(parts[3].replaceAll('%', '')) ?? 0);
+        var numDenom = parts[4].split('/');
+        numerators.add(double.tryParse(numDenom[0]) ?? 0);
+        denominators.add(double.tryParse(numDenom[1]) ?? 0);
       }
     }
 
@@ -146,25 +151,108 @@ class _Step5ScreenState extends State<Step5Screen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Distance Results'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: true),
-                titlesData: const FlTitlesData(show: true),
-                borderData: FlBorderData(show: true),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: List.generate(
-                      percentages.length,
-                      (index) => FlSpot(percentages[index], pValues[index]),
+          content: SingleChildScrollView(
+            child: Column(
+              children: List.generate(ids.length, (index) {
+                return Column(
+                  children: [
+                    Text(
+                      ids[index],
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    isCurved: true,
-                    color: Colors.blueAccent,
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            _showGraphDialog(
+                              'Distance Graph',
+                              LineChart(
+                                LineChartData(
+                                  gridData: const FlGridData(show: true),
+                                  titlesData: const FlTitlesData(show: true),
+                                  borderData: FlBorderData(show: true),
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: [
+                                        FlSpot(index.toDouble(), distances[index]),
+                                      ],
+                                      isCurved: true,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Distance'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _showGraphDialog(
+                              'P-Value Graph',
+                              LineChart(
+                                LineChartData(
+                                  gridData: const FlGridData(show: true),
+                                  titlesData: const FlTitlesData(show: true),
+                                  borderData: FlBorderData(show: true),
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: [
+                                        FlSpot(index.toDouble(), pValues[index]),
+                                      ],
+                                      isCurved: true,
+                                      color: Colors.greenAccent,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('P-Value'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _showGraphDialog(
+                              'Numerator/Denominator Graph',
+                              BarChart(
+                                BarChartData(
+                                  gridData: const FlGridData(show: true),
+                                  titlesData: const FlTitlesData(show: true),
+                                  borderData: FlBorderData(show: true),
+                                  barGroups: [
+                                    BarChartGroupData(
+                                      x: index,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: numerators[index],
+                                          color: Colors.blueAccent,
+                                          width: 15,
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        BarChartRodData(
+                                          toY: denominators[index],
+                                          color: Colors.orangeAccent,
+                                          width: 15,
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('Numerator/Denominator'),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                  ],
+                );
+              }),
             ),
           ),
           actions: [
@@ -177,6 +265,29 @@ class _Step5ScreenState extends State<Step5Screen> {
       },
     );
   }
+
+  void _showGraphDialog(String title, Widget graph) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Flex(
+            direction: Axis.horizontal,
+            children: [graph],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -290,6 +401,30 @@ class _Step5ScreenState extends State<Step5Screen> {
                     : const Text('Calculate Distance'),
               ),
               const Divider(),
+              if (distanceResults.isNotEmpty) ...[
+                const Text(
+                  'Result IDs:',
+                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                ),
+                ...distanceResults.split("\n").map((line) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          line,
+                          style: const TextStyle(fontSize: 16.0),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.bar_chart),
+                        onPressed: () => _showResultsGraph(distanceResults),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ],
             ],
           ),
         ),

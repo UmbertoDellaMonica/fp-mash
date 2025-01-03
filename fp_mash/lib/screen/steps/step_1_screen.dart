@@ -374,17 +374,6 @@ class _Step1ScreenState extends State<Step1Screen> {
                     child: const Text('Next >'),
                   ),
                 ),
-              /// TODO : Delete this Step 
-              ElevatedButton(
-                onPressed: () async {
-
-                  await _directoryService.createStepDirectory(_directoryService.step2Directory);
-
-                  // Navigate to the next step
-                  Navigator.pushNamed(context, '/step2');
-                },
-                child: const Text('Next >'),
-              ),
               const SizedBox(height: 20),
               if (isLoading) const CircularProgressIndicator(),
             ],

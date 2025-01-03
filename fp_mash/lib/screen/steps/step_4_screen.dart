@@ -14,6 +14,7 @@ class Step4Screen extends StatefulWidget {
 }
 
 class _Step4ScreenState extends State<Step4Screen> {
+  
   bool isStep4Completed = false;
 
   String? filePath1;
@@ -157,7 +158,7 @@ class _Step4ScreenState extends State<Step4Screen> {
     );
   }
 
-  bool canProceedToNextStep = true;
+  bool canProceedToNextStep = false;
 
   Future<bool> _checkFilesExist() async {
     if (sketchFilePath1 != null && sketchFilePath2 != null) {
@@ -346,6 +347,7 @@ class _Step4ScreenState extends State<Step4Screen> {
                 ],
               ),
               const Divider(),
+              
               ElevatedButton(
                 onPressed: () async {
                   canProceedToNextStep = await _checkFilesExist();
